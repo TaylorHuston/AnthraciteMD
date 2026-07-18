@@ -11,7 +11,34 @@ The product is designed around four durable promises:
 
 ## Repository Status
 
-This is the new canonical repository with fresh history. It currently contains the portable SDD identity and accepted architecture decisions; application scaffolding will be introduced through a planned foundation Change.
+The foundation monorepo is active. AdonisJS owns the service boundary, React/Vite is the browser adapter, and framework-neutral packages own contracts, domain rules, workspace operations, and plugin interfaces.
+
+## Development
+
+Requires Node.js 24 or newer and pnpm 11.5.2.
+
+```bash
+pnpm install
+pnpm dev
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm start
+```
+
+`pnpm dev` runs the service on `http://127.0.0.1:3333` and the web client on `http://127.0.0.1:5173`. The web development server proxies `/api` to the service. Authentication is introduced by a later slice of the active foundation Change; do not expose this walking skeleton outside a trusted development machine yet.
+
+## Packages
+
+- `apps/server`: authoritative AdonisJS service and versioned HTTP adapters.
+- `apps/web`: responsive React/Vite browser client.
+- `packages/contracts`: runtime-validated public contracts and opaque identities.
+- `packages/domain`: framework-neutral application rules.
+- `packages/workspace`: server-owned Markdown workspace interfaces.
+- `packages/plugin-sdk`: manifest and lifecycle contracts for every plugin.
+- `packages/plugin-testkit`: headless plugin conformance helpers.
+- `plugins/system-status`: bundled plugin proving the production SDK boundary.
 
 ## Architecture Decisions
 
