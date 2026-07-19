@@ -1,15 +1,15 @@
 ---
-status: in_review
+status: in_progress
 ---
 # Tasks: Foundation Workspace Slice
 
 ## Resume Here
 
-- Last completed action: Verified remediation was committed as `0ee35bf` with ledger reconciliation `6aa7228`, and the guarded lifecycle transition moved the Change from `in_progress` to `in_review`.
-- Next action: Run a fresh independent `/sdd-review`; user manual terminal, visual/device, and screen-reader confirmation remains intentionally pending.
+- Last completed action: Fresh independent review against `514e15f` reproduced replacement-root reauthorization, recorded a `changes-requested` verdict, applied safe documentation fixes, and returned the Change to `in_progress`.
+- Next action: Return to `/sdd-apply` and make accepted workspace identity fail closed after replacement across refresh, authenticated workspace retrieval, search rebuild, and first plugin startup; then rerun independent review before manual acceptance.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
-- Expected dirty files: This lifecycle handoff reconciliation only until committed.
-- Known blockers: None for independent rereview. Manual terminal, visual/device, and screen-reader confirmation remains pending user and is not claimed by automated evidence.
+- Expected dirty files: Review reconciliation only until committed.
+- Known blockers: Accepted workspace identity can be silently replaced in-process after `identity_changed`; manual terminal, visual/device, and screen-reader confirmation also remains pending user and is not claimed by automated evidence.
 
 ## Task Checklist
 
@@ -211,7 +211,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Closeout
 
-- Change status: in_review; ready for fresh independent `/sdd-review`.
+- Change status: in_progress; one blocking workspace-identity remediation remains before fresh independent `/sdd-review`.
 - Epic files updated: GMD-001, GMD-002, and GMD-003 describe the remediated implementation and evidence truth.
 - Story labels/references and Requirement/Scenario IDs current: Yes for planned scope.
 - Implemented By maps current: Yes; new auth, workspace, plugin persistence, and browser owners have stable code anchors.
@@ -219,9 +219,9 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
 - ADR status: Four Accepted ADRs remain linked; runtime contracts and the accepted trusted-first-party bundled-plugin boundary are implemented, while untrusted community isolation remains deferred.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
-- `sdd-review` verdict: `changes-requested` against source commit `019677434dd1108798ef68e63f4db85d9fe0ee78` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`.
+- `sdd-review` verdict: `changes-requested` against source commit `514e15fbcee18824d902db4344b93f218499bbff` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`.
 - Review record: `docs/changes/2026-07-18-foundation-workspace-slice/review.md`.
-- `review.md` findings resolved: Yes in the apply tree; the historical `changes-requested` verdict remains unchanged until independent rereview.
+- `review.md` findings resolved: No; accepted workspace identity can be silently replaced through later initialization paths.
 - Planning updates resolved: Yes for the accepted Change scope; manual confirmation and deferred product scope remain explicit.
 - Manual UI confirmation status: pending user; deterministic desktop/narrow browser evidence passes, but user acceptance remains intentionally unclaimed.
 - PR / merge state: Local implementation branch created; no remote, PR, or merge.

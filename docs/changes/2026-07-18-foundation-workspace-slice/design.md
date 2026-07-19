@@ -279,7 +279,7 @@ Use `/api/v1` routes and keep Adonis request/response types out of product packa
 - The host loads configuration before activation and registers contributions transactionally; failed activation removes partial contributions.
 - Bundled plugin packages may not import server internals, database packages, credential services, Node filesystem/process/shell modules, or another plugin's state. Enforce the allowed dependency graph with package exports, TypeScript project references, forbidden-import tests, and review.
 - Runtime capability checks remain authoritative even for enabled plugins. The initial in-process bundled-plugin model is trusted first-party code, not a containment boundary for malicious code; community execution remains deferred until process/container and UI sandboxing exist.
-- The bundled System Status plugin contributes a small settings/status view and refresh command showing safe service, workspace, index, and plugin health. It exercises service/web contributions, read-only capabilities, events, state, enable/disable, and recovery without stealing a kernel capability.
+- The bundled System Status plugin contributes a small settings/status view showing safe service and workspace availability plus the current Markdown note count. It exercises service/web contributions, a read-only capability, state, enable/disable, and recovery without stealing a kernel capability.
 
 ## Experience Design
 

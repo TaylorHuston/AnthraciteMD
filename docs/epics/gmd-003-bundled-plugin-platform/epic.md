@@ -189,7 +189,7 @@ None for the accepted bundled System Status scope. Broader resource providers be
 #### Story Notes
 
 - Seed manifest enablement from Dashboard's Core Plugin registry and capability mediation from Coordinator's runtime-neutral tool contracts and `RepositoryCapabilityHost`; neither source is copied as the final public SDK unchanged.
-- The System Status plugin is intentionally small but user-useful: it reports service, workspace, index, and plugin health through declared read-only capabilities and proves real service/web contributions.
+- The System Status plugin is intentionally small but user-useful: it reports service and workspace availability plus the current Markdown note count through a declared read-only capability and proves real service/web contributions.
 - Bundled service plugins are trusted repository-owned first-party code. The source/dependency gate prevents accidental direct privilege bypass, while broker checks remain runtime authority for supported operations. This foundation does not claim containment of deliberately malicious code; community plugins still require the deferred process/container boundary.
 
 ## Cross-Story Concerns

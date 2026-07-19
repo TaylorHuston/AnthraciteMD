@@ -13,4 +13,4 @@ All notable user-facing changes to GraphiteMD will be documented here.
 - Stable workspace and note identities so browser URLs and bookmarks survive service restarts.
 - Local full-text search with a rebuildable workspace-local index.
 - Bundled plugin inspection and enablement through a capability-mediated runtime.
-- A System Status plugin showing workspace, search, service, and plugin health.
+- A System Status plugin showing service and workspace availability plus the current Markdown note count.
