@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { connectWorkspace } from './index.js'
 
-describe('service-owned workspace connection', () => {
-  it('fails closed when the configured root is unavailable', () => {
-    expect(connectWorkspace('wrk_primary', false)).toEqual({ workspaceId: 'wrk_primary', status: 'unavailable' })
+import { acceptsPasswordInput, PasswordPolicyError, requirePassword } from './index.js'
+
+describe('owner password policy', () => {
+  it('accepts only bounded UTF-8 credentials', () => {
+    expect(acceptsPasswordInput('twelve-bytes!')).toBe(true)
+    expect(acceptsPasswordInput('short')).toBe(false)
+    expect(acceptsPasswordInput('🙂'.repeat(257))).toBe(false)
+  })
+
+  it('provides one policy failure for every adapter', () => {
+    expect(() => requirePassword('short')).toThrow(PasswordPolicyError)
   })
 })

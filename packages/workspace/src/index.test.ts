@@ -339,6 +339,60 @@ describe('ConfiguredWorkspaceAuthority', () => {
     await expect(readFile(join(workspaceRoot, 'Notes', 'Before.md'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
+  it('GMD-002/S2/R3-S3 blocks writes after an indeterminate committed rename and reconciles on retry', async () => {
+    const workspaceRoot = await createWorkspace()
+    await writeFile(join(workspaceRoot, 'Before.md'), '# Exact\n', 'utf8')
+    let interruptAfterCommit = true
+    const authority = new ConfiguredWorkspaceAuthority(workspaceRoot, {
+      afterRenameCommit: async () => {
+        if (interruptAfterCommit) {
+          interruptAfterCommit = false
+          throw new Error('simulated response interruption')
+        }
+      },
+    })
+    const opened = await authority.openConfigured()
+    const note = await authority.readNote(opened.notes[0]!.resourceId)
+
+    await expect(authority.renameNote(note.resourceId, note.revision, 'After.md')).rejects.toMatchObject({
+      name: 'WorkspaceInvalidMutationError',
+      code: 'indeterminate',
+    })
+    await expect(authority.saveNote(note.resourceId, note.revision, '# Unsafe\n')).rejects.toMatchObject({
+      name: 'WorkspaceResourceUnavailableError',
+    })
+
+    const reconciled = await authority.renameNote(note.resourceId, note.revision, 'After.md')
+
+    expect(reconciled.note).toMatchObject({ displayPath: 'After.md', source: '# Exact\n' })
+    expect(reconciled.note.resourceId).not.toBe(note.resourceId)
+    await expect(authority.saveNote(note.resourceId, note.revision, '# Unsafe\n')).rejects.toMatchObject({
+      name: 'WorkspaceResourceUnavailableError',
+    })
+    const saved = await authority.saveNote(
+      reconciled.note.resourceId,
+      reconciled.note.revision,
+      '# Reconciled\n',
+    )
+    expect(saved.source).toBe('# Reconciled\n')
+    await expect(readFile(join(workspaceRoot, 'Before.md'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(await readFile(join(workspaceRoot, 'After.md'), 'utf8')).toBe('# Reconciled\n')
+  })
+
+  it('GMD-002/S2/R3-S3 never adopts an external move without a pending rename operation', async () => {
+    const workspaceRoot = await createWorkspace()
+    await writeFile(join(workspaceRoot, 'Before.md'), '# Exact\n', 'utf8')
+    const authority = new ConfiguredWorkspaceAuthority(workspaceRoot)
+    const opened = await authority.openConfigured()
+    const note = await authority.readNote(opened.notes[0]!.resourceId)
+    await rename(join(workspaceRoot, 'Before.md'), join(workspaceRoot, 'After.md'))
+
+    await expect(authority.renameNote(note.resourceId, note.revision, 'After.md')).rejects.toMatchObject({
+      name: 'WorkspaceResourceUnavailableError',
+    })
+    expect(await readFile(join(workspaceRoot, 'After.md'), 'utf8')).toBe('# Exact\n')
+  })
+
   it('GMD-002/S2/R3-S2 rejects invalid, colliding, and stale renames without mutation', async () => {
     const workspaceRoot = await createWorkspace()
     await writeFile(join(workspaceRoot, 'Before.md'), '# Before\n', 'utf8')

@@ -126,6 +126,7 @@ The system SHALL accept credentialed browser requests only from configured exact
 | Requirement / Scenario | Location / Anchor | Kind | Responsibility |
 |---|---|---|---|
 | S1/R1 | `apps/server/app/security/owner_setup_service.ts#OwnerSetupService` | primary | Owns singleton owner creation, shared bounded UTF-8 password policy, Scrypt hashing, machine-local SQLite persistence, and overwrite refusal. |
+| S1/R1, S1/R2 | `packages/domain/src/index.ts#acceptsPasswordInput` | primary | Owns the runtime-neutral UTF-8 byte policy shared by host commands and HTTP authentication before hashing. |
 | S1/R1-S1 | `apps/server/commands/setup_owner.ts#runOwnerSetup` | adapter | Collects password and confirmation through secure prompt callbacks and emits credential-free operator messages. |
 | S1/R1-S1 | `apps/server/commands/setup_owner.ts#SetupOwner` | adapter | Exposes the host-local `owner:setup` Ace command and resolves `GRAPHITEMD_STATE_DIR`. |
 | S1/R2 | `apps/server/start/routes.ts#ownerSetup` | primary | The owner-authentication routes reject out-of-policy inputs before hashing, validate the singleton credential generically, throttle repeated failures per source, and use the official AdonisJS Auth session guard for regenerated login, current-owner checks, and server-side logout. |
@@ -152,6 +153,7 @@ The system SHALL accept credentialed browser requests only from configured exact
 | `S1/R2-S3` | `apps/server/tests/http/authentication.test.ts` — `R2-S3 destroys the server-side session so replaying its cookie remains unauthorized` | Real HTTP evidence proves logout destroys the persisted server session and replaying its old cookie cannot reach current-owner or workspace routes. | Passing 2026-07-18. |
 | `S1/R3-S1` | `apps/server/tests/http/authentication.test.ts` — `R3-S1 rejects a state-changing authenticated request without XSRF proof and accepts valid proof` | Real HTTP evidence proves missing and invalid XSRF proof reject logout without invalidating the session, while the official cookie/header proof permits the same mutation. | Passing 2026-07-18. |
 | `S1/R3-S2` | `apps/server/tests/http/authentication.test.ts` — `R3-S2 grants credentialed CORS only to an exact configured origin` | Real HTTP evidence proves an exact configured origin receives its own ACAO value plus credential permission, while a near-match untrusted credentialed origin receives no ACAO and wildcard access is absent. | Passing 2026-07-18. |
+| `S1/R2`, `S1/R3` | `tests/e2e/foundation.spec.ts` — desktop owner path | Deterministic real-browser evidence proves XSRF-protected login establishes the service session and reaches the protected workspace through the Vite/Adonis production path. | Passing 2026-07-18. |
 
 #### Verification Gaps
 
@@ -249,6 +251,7 @@ The system SHALL restore an authenticated browser from valid service-owned sessi
 | `S2/R2-S2` | `apps/server/tests/commands/reset_owner.test.ts`; `apps/server/tests/security/owner_setup_service.test.ts` — `R2-S2 rolls back the credential when session invalidation fails before commit` | Focused evidence proves cancel and confirmation mismatch perform no write, while an injected failure during session revocation rolls back the credential replacement. | Passing 2026-07-18. |
 | `S2/R3-S1` | `apps/server/tests/http/authentication.test.ts` — `R2-S1 establishes an official server-owned session and protects workspace delivery` | Disposable real-HTTP evidence proves the same persisted cookie reconnects to current-owner and workspace APIs while the response omits the host workspace path. | Passing 2026-07-18. |
 | `S2/R3-S2` | `apps/server/tests/http/authentication.test.ts`; `apps/server/tests/http/access_maintenance.test.ts`; `apps/web/src/App.test.tsx` — `returns an expired session to an honest login state` | HTTP evidence proves logout, password change, and host reset reject replayed cookies generically; browser-component evidence proves a generic unauthenticated response returns to the login experience without prior workspace content. | Passing with gap 2026-07-18. |
+| `S2/R1`, `S2/R3` | `tests/e2e/foundation.spec.ts` — password rotation and second-session invalidation | Deterministic real-browser evidence proves an owner changes the credential, all existing sessions are invalidated, and only the replacement credential reconnects. | Passing 2026-07-18. |
 
 #### Verification Gaps
 

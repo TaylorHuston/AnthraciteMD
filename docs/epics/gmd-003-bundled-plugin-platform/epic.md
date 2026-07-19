@@ -49,13 +49,13 @@ The workspace owner will be able to inspect and control bundled plugins while Gr
 
 | Story | Implementation | Verification | Capability | Last Verified | Notes |
 |---|---|---|---|---|---|
-| S1 | partial | partial | Inspect, control, and trust bundled plugins. | 2026-07-18 | Production service host, inspectable persistence, filesystem recovery, authenticated control, and inventory-mediated System Status mounting are implemented. |
+| S1 | implemented | partial | Inspect, control, and trust bundled plugins. | 2026-07-18 | The accepted bundled System Status scope is implemented through the production SDK, host, broker, inspectable persistence, authenticated controls, and inventory-mediated contribution mounting. |
 
 ## Stories
 
 ### Story S1: Inspect Control And Trust Bundled Plugins
 
-Implementation: partial
+Implementation: implemented
 Verification: partial
 Created: 2026-07-18
 Modified: 2026-07-18
@@ -154,7 +154,7 @@ The system SHALL confine durable plugin state to its documented `.graphite/plugi
 
 #### Implementation Gaps
 
-- `S1/R3`: The production provider implements the System Status plugin's current-workspace status operation and an enforceable bundled-source import gate restricts production plugin imports to the SDK. Broader resource-scoped providers and current-user propagation beyond the owner-only service remain unimplemented.
+None for the accepted bundled System Status scope. Broader resource providers belong to the deferred Assistant, Git, SDD, workflow, and community-plugin capabilities rather than this Story.
 
 #### Verified By
 
@@ -172,10 +172,11 @@ The system SHALL confine durable plugin state to its documented `.graphite/plugi
 | S1/R2-S1, S1/R2-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — `serializes concurrent enablement updates without losing either setting` | Concurrent in-process configuration mutations serialize and preserve both settings in the inspectable document. | passing 2026-07-18 |
 | S1/R3-S1, S1/R4-S1, S1/R4-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — production host and atomic state cases | System Status activates through the real workspace-aware provider; state commits in its namespace, rejects traversal/symlinks, recovers complete temporary writes, and reports invalid partial JSON as failed. | passing |
 | S1/R3-S2 | `apps/server/tests/plugins/bundled_import_boundary.test.ts` — `allows production bundled plugin code to import only the capability SDK` | The bundled production source cannot add direct filesystem, database, process, shell, or unrestricted Node imports without failing the server integration gate. | passing 2026-07-18 |
+| S1/R1, S1/R2 | `tests/e2e/foundation.spec.ts` — desktop plugin lifecycle | Deterministic real-browser evidence proves the owner sees System Status, disables it with contribution removal and persisted state, then re-enables it without losing the workbench. | passing 2026-07-18 |
+| S1/R1, S1/R2 | `apps/web/src/App.stories.tsx` — plugin active and disabled preview states | Storybook browser evidence renders both contribution states and runs configured accessibility checks. | passing 2026-07-18 |
 
 #### Verification Gaps
 
-- `S1/R3-S1`, `S1/R3-S2`: Real workspace-aware status capability, broker denial, and the bundled-source forbidden-import boundary are verified; broader excluded-resource providers remain pending.
 - `S1/R4-S2`: Recovery is verified with complete and malformed interrupted state files; process-kill durability and filesystem fault injection are not yet verified.
 
 #### Story Notes

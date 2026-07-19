@@ -13,11 +13,17 @@
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "storybook": "pnpm --filter @graphitemd/web storybook",
+    "build-storybook": "pnpm --filter @graphitemd/web build-storybook",
+    "test:storybook": "pnpm --filter @graphitemd/web test:storybook",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
+    "@playwright/test": "^1.58.2",
     "oxlint": "^1.71.0",
+    "tsx": "^4.21.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.6"
   }

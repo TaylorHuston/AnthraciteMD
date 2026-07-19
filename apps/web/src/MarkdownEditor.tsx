@@ -1,8 +1,9 @@
 import { markdown } from '@codemirror/lang-markdown'
-import { EditorState } from '@codemirror/state'
-import { EditorView, keymap } from '@codemirror/view'
+import { Compartment, EditorState, type Range } from '@codemirror/state'
+import { Decoration, EditorView, keymap, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { useEffect, useRef, useState } from 'react'
+import { markdownPresentationRanges, type MarkdownPresentationRange } from './markdownPresentation.js'
 
 export type MarkdownEditorMode = 'source' | 'rendered'
 
@@ -34,6 +35,102 @@ export function preserveUneditedSource(raw: string, previous: string, next: stri
   return raw.slice(0, rawStart) + next.slice(prefix, next.length - suffix) + raw.slice(rawEnd)
 }
 
+class SourceBackedWidget extends WidgetType {
+  constructor(readonly range: MarkdownPresentationRange) { super() }
+  eq(other: SourceBackedWidget) { return other.range.source === this.range.source && other.range.kind === this.range.kind }
+  toDOM() {
+    const element = document.createElement('span')
+    element.className = `cm-readable-${this.range.kind}`
+    element.setAttribute('aria-label', this.range.source)
+    if (this.range.kind === 'wikilink') {
+      element.textContent = this.range.display ?? this.range.source
+      element.setAttribute('role', 'img')
+      element.setAttribute('aria-roledescription', 'wikilink')
+    } else if (this.range.kind === 'task-marker') {
+      element.textContent = this.range.checked ? '☑' : '☐'
+      element.setAttribute('role', 'img')
+      element.setAttribute('aria-roledescription', `${this.range.checked ? 'checked' : 'unchecked'} task marker`)
+    } else {
+      element.textContent = this.range.source.trim().match(/^\d/)?.[0] ? this.range.source.trim() : '•'
+      element.setAttribute('role', 'img')
+      element.setAttribute('aria-roledescription', 'list marker')
+    }
+    return element
+  }
+  ignoreEvent() { return true }
+}
+
+class TableRowWidget extends WidgetType {
+  constructor(readonly source: string) { super() }
+  eq(other: TableRowWidget) { return other.source === this.source }
+  toDOM() {
+    const row = document.createElement('span')
+    const delimiter = /^\s*\|?\s*:?-{3,}:?/.test(this.source)
+    row.className = `cm-readable-table-row${delimiter ? ' cm-readable-table-delimiter' : ''}`
+    row.setAttribute('role', 'row')
+    row.setAttribute('aria-label', this.source)
+    if (delimiter) return row
+    for (const value of this.source.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|')) {
+      const cell = document.createElement('span')
+      cell.className = 'cm-readable-table-cell'
+      cell.setAttribute('role', 'cell')
+      cell.textContent = value.trim()
+      row.append(cell)
+    }
+    return row
+  }
+  ignoreEvent() { return true }
+}
+
+function activeLines(view: EditorView) {
+  const lines = new Set<number>()
+  for (const range of view.state.selection.ranges) {
+    const start = view.state.doc.lineAt(range.from).number
+    const end = view.state.doc.lineAt(range.to).number
+    for (let line = start; line <= end; line += 1) lines.add(line)
+  }
+  return lines
+}
+
+function renderedDecorations(view: EditorView): DecorationSet {
+  const decorations: Range<Decoration>[] = []
+  const tableLines = new Set<number>()
+  for (const range of markdownPresentationRanges(view.state, activeLines(view))) {
+    if (range.kind === 'heading') {
+      decorations.push(Decoration.replace({ inclusive: false }).range(range.from, range.to))
+      decorations.push(Decoration.line({ class: `cm-readable-heading cm-readable-h${range.level}` }).range(view.state.doc.lineAt(range.from).from))
+    } else if (range.kind === 'strong' || range.kind === 'emphasis') {
+      const width = range.kind === 'strong' ? 2 : 1
+      decorations.push(Decoration.replace({ inclusive: false }).range(range.from, range.from + width))
+      decorations.push(Decoration.mark({ class: `cm-readable-${range.kind}` }).range(range.from + width, range.to - width))
+      decorations.push(Decoration.replace({ inclusive: false }).range(range.to - width, range.to))
+    } else if (range.kind === 'table-row') {
+      const line = view.state.doc.lineAt(range.from).number
+      if (!tableLines.has(line)) {
+        decorations.push(Decoration.replace({ widget: new TableRowWidget(range.source), block: false }).range(range.from, range.to))
+        tableLines.add(line)
+      }
+    } else if (!tableLines.has(view.state.doc.lineAt(range.from).number)) {
+      decorations.push(Decoration.replace({ widget: new SourceBackedWidget(range) }).range(range.from, range.to))
+    }
+  }
+  return Decoration.set(decorations, true)
+}
+
+function renderedPresentation() {
+  return ViewPlugin.fromClass(class {
+    decorations: DecorationSet
+    constructor(view: EditorView) { this.decorations = renderedDecorations(view) }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.selectionSet || update.viewportChanged) this.decorations = renderedDecorations(update.view)
+    }
+  }, { decorations: (plugin) => plugin.decorations })
+}
+
+function renderedExtensions() {
+  return [renderedPresentation(), EditorView.editorAttributes.of({ class: 'cm-markdown-rendered' })]
+}
+
 function normalizedOffsetInRaw(raw: string, target: number): number {
   let normalized = 0
   for (let rawOffset = 0; rawOffset < raw.length; rawOffset += 1) {
@@ -58,6 +155,7 @@ export function MarkdownEditor({ source, onChange, readOnly = false, ariaLabel =
   const normalizedSource = useRef(createMarkdownDocument(source).toString())
   const [mode, setMode] = useState<MarkdownEditorMode>('rendered')
   const [syntaxVisible, setSyntaxVisible] = useState(false)
+  const presentation = useRef(new Compartment())
   onChangeRef.current = onChange
 
   useEffect(() => {
@@ -69,6 +167,7 @@ export function MarkdownEditor({ source, onChange, readOnly = false, ariaLabel =
         extensions: [
           markdown(), history(), keymap.of([...defaultKeymap, ...historyKeymap]), EditorView.lineWrapping,
           EditorState.readOnly.of(readOnly),
+          presentation.current.of(renderedPresentationAllowed(source) ? renderedExtensions() : []),
           EditorView.contentAttributes.of({ 'aria-label': ariaLabel }),
           EditorView.updateListener.of((update) => {
             if (update.focusChanged) setSyntaxVisible(update.view.hasFocus)
@@ -102,6 +201,13 @@ export function MarkdownEditor({ source, onChange, readOnly = false, ariaLabel =
     normalizedSource.current = createMarkdownDocument(source).toString()
     applyingExternalSource.current = false
   }, [source])
+
+  useEffect(() => {
+    const editor = view.current
+    if (!editor) return
+    const enabled = mode === 'rendered' && renderedPresentationAllowed(source)
+    editor.dispatch({ effects: presentation.current.reconfigure(enabled ? renderedExtensions() : []) })
+  }, [mode, source])
 
   const rendered = mode === 'rendered' && renderedPresentationAllowed(source)
   return <section className={`markdown-editor ${mode} ${rendered ? 'rendered-enabled' : 'literal'} ${syntaxVisible ? 'syntax-visible' : ''}`}>

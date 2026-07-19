@@ -27,12 +27,18 @@ describe('GMD-002/S2 source-preserving Markdown editor', () => {
 
   it('R1-S2 keeps supported syntax source-backed and reveals exact syntax on focus', async () => {
     const user = userEvent.setup()
-    const view = render(<MarkdownEditor source={'# Heading\n**strong**\n- [ ] task\n'} onChange={() => undefined} />)
+    const view = render(<MarkdownEditor source={'# Heading\n**strong** and *emphasis*\n- item\n- [ ] task\nSee [[Ready Note|Ready]]\n| Name | State |\n| --- | --- |\n| Graphite | Ready |\n'} onChange={() => undefined} />)
     expect(view.container.querySelector('.markdown-editor.rendered')).not.toBeNull()
+    expect(view.container.querySelector('.cm-readable-strong')?.textContent).toBe('strong')
+    expect(view.container.querySelector('.cm-readable-emphasis')?.textContent).toBe('emphasis')
+    expect(view.container.querySelector('.cm-readable-list-marker')?.getAttribute('aria-label')).toBe('- ')
+    expect(view.container.querySelector('.cm-readable-task-marker')?.getAttribute('aria-label')).toBe('- [ ] ')
+    expect(view.container.querySelector('.cm-readable-table-row')?.getAttribute('aria-label')).toBe('| Name | State |')
+    expect(view.container.querySelector('.cm-readable-wikilink')?.getAttribute('aria-label')).toBe('[[Ready Note|Ready]]')
     const content = view.container.querySelector('.cm-content') as HTMLElement
-    expect(view.container.querySelectorAll('.cm-line')).toHaveLength(4)
     await user.click(content)
     expect(view.container.querySelector('.markdown-editor.syntax-visible')).not.toBeNull()
+    expect(content.getAttribute('aria-label')).toBe('Markdown editor')
   })
 
   it('R1-S3 leaves unsupported and over-budget source literal and permits Source mode', async () => {

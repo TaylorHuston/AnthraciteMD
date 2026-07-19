@@ -2,7 +2,7 @@
   color-scheme: dark;
   font-family: Geist, Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   --bg: #0d0e10; --surface: #121417; --surface-raised: #181b1f; --line: #292d33;
-  --text: #eceef1; --muted: #949ba5; --subtle: #676e77; --accent: #9ba7ff;
+  --text: #eceef1; --muted: #949ba5; --subtle: #949ba5; --accent: #9ba7ff;
   --accent-soft: #252a45; --danger: #ff9c9c; --focus: #aeb7ff;
   background: var(--bg); color: var(--text);
 }
@@ -119,6 +119,19 @@ h1, h2, p { margin-top: 0; }
 .editor-budget-note { margin: 0; padding: 0 1rem .5rem; color: var(--muted); font-size: .8rem; }
 .markdown-editor.rendered-enabled:not(.syntax-visible) .cm-header { font-family: system-ui, sans-serif; font-weight: 650; }
 .markdown-editor.rendered-enabled:not(.syntax-visible) .cm-strong { font-weight: 700; }
+.markdown-editor.rendered-enabled .cm-markdown-rendered .cm-line { font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif; line-height: 1.75; }
+.cm-readable-heading { color: var(--text); font-weight: 700; letter-spacing: -.025em; }
+.cm-readable-h1 { font-size: 1.8rem; line-height: 1.3; }
+.cm-readable-h2 { font-size: 1.45rem; line-height: 1.35; }
+.cm-readable-h3 { font-size: 1.2rem; }
+.cm-readable-strong { font-weight: 700; }
+.cm-readable-emphasis { font-style: italic; }
+.cm-readable-list-marker, .cm-readable-task-marker { display: inline-block; min-width: 1.5rem; color: var(--accent); text-align: center; }
+.cm-readable-wikilink { padding: .08rem .25rem; border-radius: .25rem; color: #b8c0ff; background: var(--accent-soft); }
+.cm-readable-table-row { width: 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(6rem, 1fr); border-inline: 1px solid var(--line); }
+.cm-readable-table-cell { min-width: 0; padding: .35rem .55rem; overflow-wrap: anywhere; border-right: 1px solid var(--line); }
+.cm-readable-table-cell:last-child { border-right: 0; }
+.cm-readable-table-delimiter { min-height: 1px; border-top: 1px solid var(--line); }
 @media (max-width: 60rem) {
   .workbench { display: block; padding-top: 3.75rem; }
   .navigation-panel, .context-panel { display: none; }

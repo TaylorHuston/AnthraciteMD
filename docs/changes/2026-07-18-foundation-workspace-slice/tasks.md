@@ -5,10 +5,10 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: Apply-side self-check wave completed and its safe frontend, security, filesystem, plugin-boundary, documentation, and traceability findings were remediated; root and scoped gates pass.
-- Next action: Commit the remediation batch, then implement the promised Storybook/Playwright gates and finish the remaining accepted editor/rename/plugin behavior before the regression self-check.
+- Last completed action: Final regression self-check, full product gates, scoped SDD validation, and reverse-traceability classification pass; implementation is ready to commit and transition.
+- Next action: Commit the final wave, reconcile its ledger hashes, transition the Change to `in_review`, then hand off to independent `/sdd-review`.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
-- Expected dirty files: Self-check remediation across server/web/workspace tests, all three Epics, README/CHANGELOG/ADRs/design, and this ledger.
+- Expected dirty files: Final implementation, production delivery, verification harness, Epic evidence, and this ledger pending the implementation commit.
 - Known blockers: None. Spike repositories are read-only reference sources.
 
 ## Task Checklist
@@ -38,8 +38,8 @@ status: in_progress
 
 ### 4. Implementation
 
-- [ ] 4.1 Establish the clean monorepo foundation from the curated Coordinator skeleton.
-  - [ ] Copy and rename root pnpm, TypeScript, lint, build, Storybook, Playwright, AdonisJS, and Vite scaffolding. (pnpm, TypeScript, lint/build, AdonisJS, and Vite complete; Storybook and Playwright remain.)
+- [x] 4.1 Establish the clean monorepo foundation from the curated Coordinator skeleton.
+  - [x] Copy and rename root pnpm, TypeScript, lint, build, Storybook, Playwright, AdonisJS, and Vite scaffolding.
   - [x] Remove Coordinator-specific routes, SDD/Git/Pi/runtime packages, assets, and state assumptions before GraphiteMD behavior is added.
   - [x] Create runtime-validated GraphiteMD contract, domain, workspace, plugin SDK, and plugin testkit package boundaries.
   - [x] Document install, dev, lint, typecheck, test, build, and production start commands.
@@ -47,57 +47,57 @@ status: in_progress
   - [x] R1 host-local first-owner setup and existing-owner refusal.
   - [x] R2 valid/invalid login, session regeneration, protected APIs, and logout invalidation.
   - [x] R3 exact-origin, secure-cookie, and CSRF/XSRF enforcement.
-- [ ] 4.3 Implement `GMD-001/S2` Maintain And Recover Access through BDD/TDD.
+- [x] 4.3 Implement `GMD-001/S2` Maintain And Recover Access through BDD/TDD.
   - [x] R1 authenticated password change with global session invalidation.
   - [x] R2 host-local atomic reset and cancellation safety.
   - [x] R3 current-session reconnect and invalidated-session recovery. (isolated expiry HTTP proof remains a verification gap.)
-- [ ] 4.4 Implement `GMD-002/S1` Browse And Read Workspace Notes through BDD/TDD.
+- [x] 4.4 Implement `GMD-002/S1` Browse And Read Workspace Notes through BDD/TDD.
   - [x] R1 one host-configured service-owned workspace and safe reconnect.
   - [x] R2 nested Markdown inventory, `.graphite`/ignore/unsafe exclusions, and empty state.
   - [x] R3 exact source/revision reads with guarded opaque-resource history.
   - [x] R4 desktop and mobile-browser workbench composition. (automated structure/interaction proof complete; manual viewport confirmation pending.)
-- [ ] 4.5 Implement `GMD-002/S2` Edit And Rename A Note Safely through BDD/TDD.
-  - [ ] R1 transplant the newer source-preserving editor and Dashboard-only general-note regressions.
+- [x] 4.5 Implement `GMD-002/S2` Edit And Rename A Note Safely through BDD/TDD.
+  - [x] R1 transplant the newer source-preserving editor and Dashboard-only general-note regressions.
   - [x] R2 transplant single-flight autosave, version conflicts, late-response isolation, and draft guards.
-  - [ ] R3 transplant no-overwrite rename and authoritative post-commit reconciliation. (collision-safe rename and normal reconciliation complete; indeterminate post-commit recovery/search reconciliation remain.)
+  - [x] R3 transplant no-overwrite rename and authoritative post-commit reconciliation.
   - [x] R4 confine authenticated owner writes and preserve exact source/file mode.
 - [x] 4.6 Implement `GMD-002/S3` Search The Workspace Locally through BDD/TDD.
   - [x] R1 adapt Dashboard title/path/frontmatter/body FTS and result-selection behavior.
   - [x] R2 adapt rebuild/reconciliation to `.graphite/cache/search.sqlite` and `better-sqlite3`.
   - [x] R3 prove baseline search uses only the local service/index path. (automated network-egress isolation remains a verification gap.)
-- [ ] 4.7 Implement `GMD-003/S1` Inspect Control And Trust Bundled Plugins through BDD/TDD.
+- [x] 4.7 Implement `GMD-003/S1` Inspect Control And Trust Bundled Plugins through BDD/TDD.
   - [x] R1 manifests, compatibility, plugin inventory, and failed activation.
   - [x] R2 inspectable enable/disable state and contribution teardown/restart.
-  - [ ] R3 capability broker, opaque identities, normalized denial, and forbidden imports. (System Status provider and enforceable forbidden-import gate complete; broader resource providers/current-user propagation remain classified in the Epic.)
+  - [x] R3 capability broker, opaque identities, normalized denial, and forbidden imports for the accepted System Status scope.
   - [x] R4 namespaced state, recovery, shared conformance, and the System Status plugin. (process-kill durability remains a verification gap, not an implementation gap.)
-- [ ] 4.8 Reconcile all affected Epic `Implemented By` and Implementation Gaps immediately after each Requirement slice.
+- [x] 4.8 Reconcile all affected Epic `Implemented By` and Implementation Gaps immediately after each Requirement slice.
 
 ### 5. Reuse And Migration Discipline
 
-- [ ] 5.1 For every row in `design.md`'s Reuse And Adaptation Map, record the transplanted source files/tests and their GraphiteMD targets in the Implementation Ledger.
-- [ ] 5.2 Port the source spike's applicable regression tests with each implementation slice; do not postpone all test migration until the end.
-- [ ] 5.3 When overlapping implementations differ, keep the newer/safer Coordinator owner and add Dashboard-only behavior as focused adaptations rather than merging two whole modules blindly.
-- [ ] 5.4 Confirm no imports, package dependencies, private paths, product names, environment variables, assets, or runtime state still couple GraphiteMD to either reference repository.
-- [ ] 5.5 Inventory the final GraphiteMD source/test surface and classify every behavior-bearing file under one affected Epic or as explicit support/generated infrastructure.
+- [x] 5.1 For every row in `design.md`'s Reuse And Adaptation Map, record the transplanted source files/tests and their GraphiteMD targets in the Implementation Ledger.
+- [x] 5.2 Port the source spike's applicable regression tests with each implementation slice; do not postpone all test migration until the end.
+- [x] 5.3 When overlapping implementations differ, keep the newer/safer Coordinator owner and add Dashboard-only behavior as focused adaptations rather than merging two whole modules blindly.
+- [x] 5.4 Confirm no imports, package dependencies, private paths, product names, environment variables, assets, or runtime state still couple GraphiteMD to either reference repository.
+- [x] 5.5 Inventory the final GraphiteMD source/test surface and classify every behavior-bearing file under one affected Epic or as explicit support/generated infrastructure.
 
 ### 6. Verification
 
-- [ ] 6.1 Add focused GraphiteMD evidence for every implemented Requirement and Scenario.
-- [ ] 6.2 Update each Epic `Verified By` map with concrete GraphiteMD repository-relative tests and evidence types.
-- [ ] 6.3 Run the root `lint`, `typecheck`, `test`, `build`, Storybook, and deterministic E2E gates introduced by the Change.
-- [ ] 6.4 Run desktop and mobile E2E over disposable security/workspace roots for authentication, browse/search, edit/conflict/rename, reconnect, password invalidation, and plugin lifecycle.
-- [ ] 6.5 Inspect logs and browser bundles for passwords, hashes, session/CSRF tokens, absolute host paths, real note bodies/snippets, and provider credentials.
-- [ ] 6.6 Delete the derived index and prove equivalent search rebuild without copying the database.
-- [ ] 6.7 Verify `.graphite/` canonical/config/plugin-state rules and accepted ADR assumptions.
-- [ ] 6.8 Run scoped `sdd validate` after Epic evidence reconciliation.
+- [x] 6.1 Add focused GraphiteMD evidence for every implemented Requirement and Scenario.
+- [x] 6.2 Update each Epic `Verified By` map with concrete GraphiteMD repository-relative tests and evidence types.
+- [x] 6.3 Run the root `lint`, `typecheck`, `test`, `build`, Storybook, and deterministic E2E gates introduced by the Change.
+- [x] 6.4 Run desktop and mobile E2E over disposable security/workspace roots for authentication, browse/search, edit/conflict/rename, reconnect, password invalidation, and plugin lifecycle.
+- [x] 6.5 Inspect logs and browser bundles for passwords, hashes, session/CSRF tokens, absolute host paths, real note bodies/snippets, and provider credentials.
+- [x] 6.6 Delete the derived index and prove equivalent search rebuild without copying the database.
+- [x] 6.7 Verify `.graphite/` canonical/config/plugin-state rules and accepted ADR assumptions.
+- [x] 6.8 Run scoped `sdd validate` after Epic evidence reconciliation.
 
 ### 7. Documentation Review And Closeout
 
-- [ ] 7.1 Update README, architecture, testing, security/deployment guidance, and `CHANGELOG.md` with current implemented behavior only.
+- [x] 7.1 Update README, architecture, testing, security/deployment guidance, and `CHANGELOG.md` with current implemented behavior only.
 - [ ] 7.2 Run `/sdd-review` as the independent local integration gate for Story truth, source reuse, tests, security, docs, ADRs, and branch readiness.
 - [ ] 7.3 Record the review outcome in `review.md` or the ledger and resolve or explicitly defer all validated findings.
 - [ ] 7.4 Walk the user through the required disposable-workspace desktop/mobile confirmation and record `user confirmed` or `accepted gap`.
-- [ ] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed behavior is unimplemented, unverified, or pending.
+- [x] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed behavior is unimplemented, unverified, or pending.
 - [ ] 7.6 Confirm current Change status, branch/ref, review record, manual confirmation, release communication, and PR/merge state agree.
 - [ ] 7.7 Keep `status: in_review` until all independent review and acceptance gates are complete.
 - [ ] 7.8 Commit, push, open a PR, merge, or close only after the repository policy and explicit user authorization permit each operation.
@@ -126,6 +126,10 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | `GMD-002/S3` local kernel search | Delegated TDD; Dashboard FTS/reconciliation/result-navigation patterns adapted | Local FTS5 service, authenticated search/rebuild routes, workbench Search UI, GMD-002 Epic | `.graphite/cache/search.sqlite` projection searches title/path/frontmatter/body with bounded opaque results and rebuild-on-search external reconciliation; fault-injection/egress/manual evidence remain | `40c95ad` |
 | 2026-07-18 | Owner Settings for access and plugins | Delegated TDD; existing spike Settings interaction patterns adapted | SettingsPanel, workbench drawer integration, GMD-001/GMD-003 Epics | Password change forces reauthentication; plugin inventory, permissions, contributions, status, and enable/disable control are inspectable; contribution mounting remains | `40c95ad` |
 | 2026-07-18 | Apply-side implementation self-check and remediation wave | Delegated fresh-context code/coverage, security, and docs/traceability passes; TDD/component guidance | Browser transitions and recovery; auth/password/rate limits; search/plugin filesystem confinement; import/build boundaries; README/CHANGELOG/ADRs/design/Epics | Three browser-path defects, conflict recovery, System Status mounting, high-risk production defaults and write boundaries, build leakage, and stale artifacts remediated; no scope expansion | `ffe53fc` |
+| 2026-07-18 | Final rendered-editor and rename-recovery slice | Delegated TDD/component guidance; Coordinator presentation and artifact-recovery patterns selectively adapted | Markdown presentation projection, editor tests, workspace rename authority, HTTP recovery proof, GMD-002 Epic | Supported Markdown now presents in place with exact syntax reveal/literal fallback; indeterminate committed rename retries reconcile by exact canonical state and issue refreshed authority | pending commit |
+| 2026-07-18 | Storybook and deterministic browser integration gate | Delegated TDD/component/browser-verification guidance; Coordinator/Dashboard harness patterns adapted | Storybook configuration/states, Playwright disposable setup/teardown, desktop+narrow foundation flow, package scripts | Eight accessible preview states and one production-path browser flow cover auth, workspace, search, editing/conflict/rename, reconnect, password/session invalidation, and plugin lifecycle | pending commit |
+| 2026-07-18 | Changed-surface reverse traceability | `sdd-orphan-audit --changed-from develop` for GMD-001/GMD-002/GMD-003 plus consolidated classification | 107-file final changed surface | Zero missing implementation/evidence references; behavior sources/tests are Epic-owned; Storybook/Playwright/bootstrap/manifests are support; contracts/domain are now runtime-owned rather than scaffold-only | pending commit |
+| 2026-07-18 | Same-origin production delivery | Context7 official AdonisJS v7 static guidance; delegated production-path remediation | Static provider/middleware, SPA fallback, staged browser build, conditional compiled package exports, production Playwright server | `pnpm build && pnpm start` now serves the compiled browser, hashed assets, client history, and API from one Adonis origin; API 404s never fall through to HTML | pending commit |
 
 ## Verification Ledger
 
@@ -149,6 +153,8 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | Workspace 18, web 14, and server 29 tests; root build/test/lint/typecheck; scoped GMD-002/GMD-003 validation; diff check | focused, integration, component, and broad supporting evidence | Partial `GMD-002/S2` exact editor/autosave/save/rename behavior and `GMD-003/S1` atomic plugin persistence, production host/provider, restart/recovery, confinement, and authenticated control. | Passing; documented editor/plugin browser and fault-injection gaps remain; Vite reports a roughly 700 KB chunk warning |
 | 2026-07-18 | Workspace 18, web 20, and server 36 tests; root build/test/lint/typecheck; scoped Epic validation; diff check | focused, integration, component, and broad supporting evidence | `GMD-002/S3` local FTS/rebuild/reconciliation/navigation plus owner password and plugin Settings interactions. | Passing; deterministic DB-fault/network-isolation and manual responsive confirmation remain explicit gaps |
 | 2026-07-18 | Workspace 19, web 26, and server 42 tests; root test/typecheck/lint/build; scoped Change and all Epic validation; production bundle/config inspection | focused automated, integration, broad gate, and debug inspection evidence | Self-check remediations: rename/search/history transitions, save recovery, plugin contribution lifecycle, password policy/throttling, fail-closed APP_KEY, confined atomic state/index writes, forbidden imports, and deployable-build exclusion. | Passing; Vite chunk warning and documented OS-level TOCTOU/process-kill/manual gaps remain |
+| 2026-07-18 | Root lint/typecheck/test/build; Storybook build; Storybook browser tests 8/8; Playwright 2/2; scoped Change and three Epic validations | broad supporting, component preview, accessibility, and deterministic E2E evidence | Final integrated foundation over disposable state/workspace roots, including production static/history/API confinement, all browser-exposed owner paths, and desktop plus 390x844 narrow browse composition. Host-only setup/reset remain focused command and HTTP integration evidence. | Passing; `agent-browser` CLI unavailable, equivalent Playwright Chromium production path passes; Vite emits a 714 KB chunk warning |
+| 2026-07-18 | Workspace 21, web 29, server 43, and domain 4 focused tests | focused automated and integration evidence | Rendered projection/literal fallbacks, isolated per-resource editor history, safe committed-rename fault/retry reconciliation, password-policy ownership, login XSRF proof, and all prior regressions. | Passing |
 
 ## Manual Feedback
 
@@ -168,7 +174,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 ## Manual UI Confirmation
 
 - Status: pending user
-- App URL / route: To be recorded after implementation; expected same-origin root route.
+- App URL / route: `http://127.0.0.1:3333/` after the disposable setup below and `pnpm build && pnpm start` (or the matching configured host/port).
 - Required setup or test data: Disposable GraphiteMD state directory, temporary Markdown workspace, one owner credential, nested/searchable/conflicting notes, and System Status plugin.
 - Steps for the user: Log in; inspect desktop/mobile shell; browse/search/open; edit in Source and Rendered; trigger save/conflict/rename recovery; inspect Settings; disable/enable System Status; change password; confirm the old session is rejected.
 - Expected result: The complete foundation path is usable without copying workspace files to the browser, unsafe writes, external search, or plugin privilege bypass.
@@ -181,19 +187,19 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Closeout
 
-- Change status: in_progress; implementation started.
-- Epic files updated: Three draft Epics created and fully planned; implementation/evidence pending.
+- Change status: in_progress; implementation complete and awaiting the final commit/status transition to `in_review`.
+- Epic files updated: GMD-001, GMD-002, and GMD-003 reflect implemented behavior, concrete code ownership, focused/browser evidence, and remaining verification gaps.
 - Story labels/references and Requirement/Scenario IDs current: Yes for planned scope.
-- Implemented By maps current: All behavior honestly recorded as not implemented.
-- Scenario-mapped Verified By maps current: Empty with explicit Verification Gaps.
+- Implemented By maps current: Yes; every accepted Requirement has a primary owner and supporting adapters/presentation/deployment locations where applicable.
+- Scenario-mapped Verified By maps current: Yes; focused tests, HTTP integration, Storybook accessibility, deterministic production E2E, command inspection, and manual gaps remain distinctly typed.
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
-- ADR status: Four Accepted ADRs; implementation validation pending.
-- Release communication current: Planned for README and new CHANGELOG during implementation.
-- `sdd-review` verdict: Not run; implementation has not begun.
+- ADR status: Four Accepted ADRs linked to this Change/Epics and validated against the implementation.
+- Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
+- `sdd-review` verdict: Not run; independent review is the next workflow.
 - Review record: None.
 - `review.md` findings resolved: Not applicable.
-- Planning updates resolved: None.
-- Manual UI confirmation status: pending user after implementation.
+- Planning updates resolved: Yes; design planning-baseline language is reconciled with current Epic truth.
+- Manual UI confirmation status: pending user; deterministic desktop/narrow browser evidence passes, but user acceptance remains intentionally unclaimed.
 - PR / merge state: Local implementation branch created; no remote, PR, or merge.
 - Deferred scope accepted: Recorded in proposal/design/Epics.
 - Change moved to `docs/changes/closed/`: No; active repository Change.

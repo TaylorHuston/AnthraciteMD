@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { access, link, open, readdir, realpath, rename, stat, unlink } from 'node:fs/promises'
+import { access, link, lstat, open, readdir, realpath, rename, stat, unlink } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { basename, dirname, join, posix } from 'node:path'
+import type { WorkspaceId } from '@graphitemd/contracts'
 import { isMap, isScalar, parseDocument } from 'yaml'
 
-export type WorkspaceId = `wrk_${string}`
 export type ResourceId = `res_${string}`
 
 export interface MarkdownNoteInventoryItem {
@@ -86,7 +86,11 @@ interface OpenWorkspace {
 export interface WorkspaceInventoryOptions {
   readonly excludedPaths?: readonly string[]
   readonly maxSourceBytes?: number
+  /** Fault boundary used by deterministic recovery tests after the native rename has committed. */
+  readonly afterRenameCommit?: () => Promise<void>
 }
+
+type NormalizedWorkspaceInventoryOptions = Required<Omit<WorkspaceInventoryOptions, 'afterRenameCommit'>>
 
 const DEFAULT_MAX_SOURCE_BYTES = 1024 * 1024
 
@@ -127,8 +131,16 @@ const mutationQueues = new Map<string, Promise<void>>()
  */
 export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
   #opened: OpenWorkspace | null = null
+  readonly #pendingRenames = new Map<string, Readonly<{
+    sourcePath: string
+    targetPath: string
+    targetDisplayPath: string
+    expectedRevision: string
+    result?: RenameNoteResult
+  }>>()
 
-  readonly #inventoryOptions: Required<WorkspaceInventoryOptions>
+  readonly #inventoryOptions: NormalizedWorkspaceInventoryOptions
+  readonly #afterRenameCommit: (() => Promise<void>) | undefined
 
   constructor(
     private readonly configuredRoot: string | undefined,
@@ -138,6 +150,7 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
       excludedPaths: normalizeExcludedPaths(inventoryOptions.excludedPaths ?? []),
       maxSourceBytes: inventoryOptions.maxSourceBytes ?? DEFAULT_MAX_SOURCE_BYTES,
     }
+    this.#afterRenameCommit = inventoryOptions.afterRenameCommit
   }
 
   async openConfigured(): Promise<WorkspaceSnapshot> {
@@ -297,14 +310,40 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
     requestedFileName: string,
   ): Promise<RenameNoteResult> {
     const fileName = normalizeMarkdownFileName(requestedFileName)
-    return this.#withIssuedResource(resourceId, async (opened, note, sourcePath) => {
-      const targetDisplayPath = posix.join(posix.dirname(note.displayPath), fileName)
-      if (isExcluded(targetDisplayPath, this.#inventoryOptions.excludedPaths)) {
-        throw new WorkspaceInvalidMutationError('invalid_name')
+    const currentWorkspace = await this.current()
+    if (!currentWorkspace.available) throw new WorkspaceUnavailableError(currentWorkspace.reason)
+    const opened = this.#opened
+    const note = currentWorkspace.notes.find((candidate) => candidate.resourceId === resourceId)
+    if (!opened) throw new WorkspaceResourceUnavailableError()
+    if (!note) {
+      const pending = this.#pendingRenames.get(resourceId)
+      if (!pending || pending.expectedRevision !== expectedRevision || basename(pending.targetPath) !== fileName) {
+        throw new WorkspaceResourceUnavailableError()
       }
-      const targetPath = join(opened.root, ...targetDisplayPath.split('/'))
-      return withMutationLocks([sourcePath, targetPath], async () => {
-        const current = await this.readNote(resourceId)
+      if (pending.result) return pending.result
+      return withMutationLocks([pending.sourcePath, pending.targetPath], () => this.#reconcileCommittedRename(
+        resourceId,
+        opened,
+        pending.sourcePath,
+        pending.targetPath,
+        pending.targetDisplayPath,
+        expectedRevision,
+      ))
+    }
+    const sourcePath = join(opened.root, ...note.displayPath.split('/'))
+    const targetDisplayPath = posix.join(posix.dirname(note.displayPath), fileName)
+    if (isExcluded(targetDisplayPath, this.#inventoryOptions.excludedPaths)) {
+      throw new WorkspaceInvalidMutationError('invalid_name')
+    }
+    const targetPath = join(opened.root, ...targetDisplayPath.split('/'))
+    return withMutationLocks([sourcePath, targetPath], async () => {
+        let current: MarkdownNote
+        try {
+          current = await this.readNote(resourceId)
+        } catch (error) {
+          if (!(error instanceof WorkspaceResourceUnavailableError)) throw error
+          return this.#reconcileCommittedRename(resourceId, opened, sourcePath, targetPath, targetDisplayPath, expectedRevision)
+        }
         if (current.revision !== expectedRevision) {
           throw new WorkspaceRevisionConflictError(current.revision)
         }
@@ -323,19 +362,82 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
           await unlink(targetPath).catch(() => undefined)
           throw new WorkspaceInvalidMutationError('indeterminate')
         }
-        const inventory = await inventoryMarkdown(opened.root, opened.snapshot.workspaceId, this.#inventoryOptions)
-        const snapshot: WorkspaceSnapshot = {
-          available: true,
-          workspaceId: opened.snapshot.workspaceId,
-          notes: inventory.filter((item): item is MarkdownNoteInventoryItem => item.kind === 'note'),
-          inventory,
+        this.#pendingRenames.set(resourceId, {
+          sourcePath,
+          targetPath,
+          targetDisplayPath,
+          expectedRevision,
+        })
+        try {
+          await this.#afterRenameCommit?.()
+        } catch {
+          throw new WorkspaceInvalidMutationError('indeterminate')
         }
-        this.#opened = { root: opened.root, identity: opened.identity, snapshot }
-        const renamedItem = snapshot.notes.find((candidate) => candidate.displayPath === targetDisplayPath)
-        if (!renamedItem) throw new WorkspaceInvalidMutationError('indeterminate')
-        return { workspace: snapshot, note: await this.readNote(renamedItem.resourceId) }
-      })
+      const result = await this.#issueRenamedResource(opened, targetDisplayPath, expectedRevision)
+      this.#pendingRenames.set(resourceId, { sourcePath, targetPath, targetDisplayPath, expectedRevision, result })
+      return result
     })
+  }
+
+  async #reconcileCommittedRename(
+    resourceId: string,
+    opened: OpenWorkspace,
+    sourcePath: string,
+    targetPath: string,
+    targetDisplayPath: string,
+    expectedRevision: string,
+  ): Promise<RenameNoteResult> {
+    const pending = this.#pendingRenames.get(resourceId)
+    if (!pending || pending.sourcePath !== sourcePath || pending.targetPath !== targetPath ||
+      pending.targetDisplayPath !== targetDisplayPath || pending.expectedRevision !== expectedRevision) {
+      throw new WorkspaceResourceUnavailableError()
+    }
+    try {
+      await lstat(sourcePath)
+      throw new WorkspaceInvalidMutationError('indeterminate')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        if (error instanceof WorkspaceInvalidMutationError) throw error
+        throw new WorkspaceInvalidMutationError('indeterminate')
+      }
+    }
+    let canonicalTarget: string
+    try {
+      canonicalTarget = await realpath(targetPath)
+    } catch {
+      throw new WorkspaceInvalidMutationError('indeterminate')
+    }
+    if (canonicalTarget !== targetPath) throw new WorkspaceInvalidMutationError('indeterminate')
+    const targetRevision = await revisionAtPath(targetPath, this.#inventoryOptions.maxSourceBytes)
+    if (targetRevision !== expectedRevision) throw new WorkspaceInvalidMutationError('indeterminate')
+    const result = await this.#issueRenamedResource(opened, targetDisplayPath, expectedRevision)
+    this.#pendingRenames.set(resourceId, { ...pending, result })
+    return result
+  }
+
+  async #issueRenamedResource(
+    opened: OpenWorkspace,
+    targetDisplayPath: string,
+    expectedRevision: string,
+  ): Promise<RenameNoteResult> {
+    const inventory = await inventoryMarkdown(opened.root, opened.snapshot.workspaceId, this.#inventoryOptions)
+    const snapshot: WorkspaceSnapshot = {
+      available: true,
+      workspaceId: opened.snapshot.workspaceId,
+      notes: inventory.filter((item): item is MarkdownNoteInventoryItem => item.kind === 'note'),
+      inventory,
+    }
+    const renamedItem = snapshot.notes.find((candidate) => candidate.displayPath === targetDisplayPath)
+    if (!renamedItem) throw new WorkspaceInvalidMutationError('indeterminate')
+    this.#opened = { root: opened.root, identity: opened.identity, snapshot }
+    try {
+      const renamedNote = await this.readNote(renamedItem.resourceId)
+      if (renamedNote.revision !== expectedRevision) throw new WorkspaceInvalidMutationError('indeterminate')
+      return { workspace: snapshot, note: renamedNote }
+    } catch (error) {
+      this.#opened = opened
+      throw error
+    }
   }
 
   async #withIssuedResource<T>(
@@ -356,6 +458,27 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
     }
     if (canonicalPath !== expectedPath) throw new WorkspaceResourceUnavailableError()
     return operation(opened, note, expectedPath)
+  }
+}
+
+async function revisionAtPath(path: string, maxSourceBytes: number): Promise<NoteRevision> {
+  let handle
+  try {
+    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW)
+    const metadata = await handle.stat()
+    if (!metadata.isFile() || metadata.size > maxSourceBytes) {
+      throw new WorkspaceInvalidMutationError('indeterminate')
+    }
+    const bytes = Buffer.alloc(metadata.size)
+    const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0)
+    if (bytesRead !== metadata.size) throw new WorkspaceInvalidMutationError('indeterminate')
+    new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
+    return `rev_${createHash('sha256').update(bytes).digest('hex')}`
+  } catch (error) {
+    if (error instanceof WorkspaceInvalidMutationError) throw error
+    throw new WorkspaceInvalidMutationError('indeterminate')
+  } finally {
+    await handle?.close()
   }
 }
 
@@ -475,7 +598,7 @@ export function parseMarkdownYamlProperties(source: string): {
 async function inventoryMarkdown(
   root: string,
   workspaceId: WorkspaceId,
-  options: Required<WorkspaceInventoryOptions>,
+  options: NormalizedWorkspaceInventoryOptions,
 ): Promise<MarkdownInventoryItem[]> {
   async function visit(directory: string, relativeDirectory: string): Promise<MarkdownInventoryItem[]> {
     const inventory: MarkdownInventoryItem[] = []

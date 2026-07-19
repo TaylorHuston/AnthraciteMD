@@ -281,6 +281,38 @@ describe('GMD-002/S2 authenticated confined note mutations', () => {
       workspace: { notes: [expect.objectContaining({ displayPath: 'Notes/Renamed.md' })] },
     })
   })
+
+  it('R3-S3 returns the committed rename receipt when an authenticated client retries after losing the response', async () => {
+    const authenticated = await loginOwner()
+    const workspace = await (await fetch(`${origin}/api/v1/workspace`, {
+      headers: { cookie: authenticated.cookie },
+    })).json() as { notes: Array<{ resourceId: string; displayPath: string }> }
+    const item = workspace.notes.find(({ displayPath }) => displayPath === 'Notes/Renamed.md')!
+    const opened = await (await fetch(`${origin}/api/v1/notes/${item.resourceId}`, {
+      headers: { cookie: authenticated.cookie },
+    })).json() as { revision: string }
+    const request = () => fetch(`${origin}/api/v1/notes/${item.resourceId}/rename`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie: authenticated.cookie, 'x-xsrf-token': authenticated.token },
+      body: JSON.stringify({ expectedRevision: opened.revision, fileName: 'Recovered.md' }),
+    })
+    const committed = await request()
+    expect(committed.status).toBe(200)
+    const committedBody = await committed.json() as { note: { resourceId: string; displayPath: string } }
+
+    const response = await request()
+
+    expect(response.status).toBe(200)
+    const reconciled = await response.json() as { note: { resourceId: string; displayPath: string } }
+    expect(reconciled.note).toMatchObject({ displayPath: 'Notes/Recovered.md' })
+    expect(reconciled.note.resourceId).toBe(committedBody.note.resourceId)
+    expect((await fetch(`${origin}/api/v1/notes/${item.resourceId}`, {
+      headers: { cookie: authenticated.cookie },
+    })).status).toBe(404)
+    expect((await fetch(`${origin}/api/v1/notes/${reconciled.note.resourceId}`, {
+      headers: { cookie: authenticated.cookie },
+    })).status).toBe(200)
+  })
 })
 
 describe('GMD-002/S3 authenticated local search', () => {

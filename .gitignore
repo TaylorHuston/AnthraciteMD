@@ -5,7 +5,11 @@ build/
 dist/
 *.tsbuildinfo
 dist/
+apps/server/public/
 coverage/
+**/storybook-static/
+test-results/
+playwright-report/
 *.log
 .env
 .env.*

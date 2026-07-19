@@ -9,7 +9,8 @@ export default defineConfig({
     () => import('@adonisjs/auth/auth_provider'),
     () => import('@adonisjs/cors/cors_provider'),
     () => import('@adonisjs/shield/shield_provider'),
+    () => import('@adonisjs/static/static_provider'),
   ],
   preloads: [() => import('#start/kernel'), () => import('#start/routes')],
-  metaFiles: [],
+  metaFiles: [{ pattern: 'public/**', reloadServer: false }],
 })

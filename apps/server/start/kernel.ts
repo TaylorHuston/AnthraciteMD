@@ -1,4 +1,10 @@
 import router from '@adonisjs/core/services/router'
+import server from '@adonisjs/core/services/server'
+
+server.use([
+  () => import('@adonisjs/static/static_middleware'),
+  () => import('../app/middleware/spa_fallback_middleware.js'),
+])
 
 router.use([
   () => import('@adonisjs/cors/cors_middleware'),

@@ -3,29 +3,20 @@ import { isAbsolute, join, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
 import { Scrypt } from '@adonisjs/hash/drivers/scrypt'
+import {
+  acceptsPasswordInput,
+  requirePassword,
+} from '@graphitemd/domain'
+
+export {
+  acceptsPasswordInput,
+  PASSWORD_MAXIMUM_BYTES,
+  PASSWORD_MINIMUM_BYTES,
+  PasswordPolicyError,
+} from '@graphitemd/domain'
 
 const DATABASE_FILE = 'security.sqlite'
 const OWNER_ID = 1
-export const PASSWORD_MINIMUM_BYTES = 12
-export const PASSWORD_MAXIMUM_BYTES = 1024
-
-export class PasswordPolicyError extends Error {
-  constructor() {
-    super(`Password must be between ${PASSWORD_MINIMUM_BYTES} and ${PASSWORD_MAXIMUM_BYTES} UTF-8 bytes`)
-    this.name = 'PasswordPolicyError'
-  }
-}
-
-export function acceptsPasswordInput(password: unknown): password is string {
-  if (typeof password !== 'string') return false
-  const bytes = Buffer.byteLength(password, 'utf8')
-  return bytes >= PASSWORD_MINIMUM_BYTES && bytes <= PASSWORD_MAXIMUM_BYTES
-}
-
-function requirePassword(password: unknown): asserts password is string {
-  if (!acceptsPasswordInput(password)) throw new PasswordPolicyError()
-}
-
 export class OwnerAlreadyExistsError extends Error {
   constructor() {
     super('An owner account already exists')
