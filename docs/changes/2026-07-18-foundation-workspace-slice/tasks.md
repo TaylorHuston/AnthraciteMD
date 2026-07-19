@@ -1,14 +1,14 @@
 ---
-status: in_progress
+status: in_review
 ---
 # Tasks: Foundation Workspace Slice
 
 ## Resume Here
 
-- Last completed action: The review-remediation and fresh self-check waves are complete; all focused, root, Storybook, production E2E, dependency, reverse-traceability, and structural gates pass on the combined tree.
-- Next action: Commit the verified implementation/artifact reconciliation, transition the Change to `in_review`, and hand it to a fresh `/sdd-review`; user manual confirmation remains intentionally pending.
+- Last completed action: Verified remediation was committed as `0ee35bf` with ledger reconciliation `6aa7228`, and the guarded lifecycle transition moved the Change from `in_progress` to `in_review`.
+- Next action: Run a fresh independent `/sdd-review`; user manual terminal, visual/device, and screen-reader confirmation remains intentionally pending.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
-- Expected dirty files: This ledger-only commit reconciliation, then the guarded lifecycle transition.
+- Expected dirty files: This lifecycle handoff reconciliation only until committed.
 - Known blockers: None for independent rereview. Manual terminal, visual/device, and screen-reader confirmation remains pending user and is not claimed by automated evidence.
 
 ## Task Checklist
@@ -99,7 +99,7 @@ status: in_progress
 - [ ] 7.4 Walk the user through the required disposable-workspace desktop/mobile confirmation and record `user confirmed` or `accepted gap`.
 - [x] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed remediation behavior is unimplemented, unverified, or pending after the fresh finding set is resolved.
 - [x] 7.6 Confirm current Change status, branch/ref, review record, manual confirmation, release communication, and PR/merge state agree.
-- [ ] 7.7 Return the implementation-complete Change to `in_review` only after the fresh finding set is remediated and self-checked; manual acceptance may remain open.
+- [x] 7.7 Return the implementation-complete Change to `in_review` only after the fresh finding set is remediated and self-checked; manual acceptance may remain open.
 - [ ] 7.8 Commit, push, open a PR, merge, or close only after the repository policy and explicit user authorization permit each operation.
 
 ### 8. 2026-07-19 Review Remediation
@@ -211,7 +211,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Closeout
 
-- Change status: in_progress pending the guarded transition to `in_review` after the verified commit.
+- Change status: in_review; ready for fresh independent `/sdd-review`.
 - Epic files updated: GMD-001, GMD-002, and GMD-003 describe the remediated implementation and evidence truth.
 - Story labels/references and Requirement/Scenario IDs current: Yes for planned scope.
 - Implemented By maps current: Yes; new auth, workspace, plugin persistence, and browser owners have stable code anchors.
