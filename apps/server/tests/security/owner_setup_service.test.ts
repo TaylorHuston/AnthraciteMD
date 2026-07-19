@@ -44,6 +44,67 @@ describe('GMD-001/S1 R1 host-local owner setup', () => {
 })
 
 describe('GMD-001/S2 owner credential maintenance', () => {
+  it('R1-S1 does not let an old-password authentication complete after credential revocation', async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), 'graphitemd-security-'))
+    const loginService = new OwnerSetupService(stateDirectory)
+    const maintenanceService = new OwnerSetupService(stateDirectory)
+    await loginService.createOwner('original password')
+
+    let releaseSession!: () => void
+    const sessionCanComplete = new Promise<void>((resolve) => {
+      releaseSession = resolve
+    })
+    let sessionIssuanceStarted!: () => void
+    const sessionIssuanceDidStart = new Promise<void>((resolve) => {
+      sessionIssuanceStarted = resolve
+    })
+
+    const login = loginService.authenticate('original password', async () => {
+      sessionIssuanceStarted()
+      await sessionCanComplete
+    })
+    await sessionIssuanceDidStart
+
+    let passwordChangeCompleted = false
+    const passwordChange = maintenanceService
+      .changePassword('original password', 'replacement password')
+      .then((result) => {
+        passwordChangeCompleted = true
+        return result
+      })
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(passwordChangeCompleted).toBe(false)
+
+    releaseSession()
+    await expect(login).resolves.toBe(true)
+    await expect(passwordChange).resolves.toBe(true)
+    await expect(loginService.authenticate('original password', async () => {})).resolves.toBe(false)
+  })
+
+  it('R2-S1 rejects and cleans up a session issued across a host-reset generation change', async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), 'graphitemd-security-'))
+    const service = new OwnerSetupService(stateDirectory)
+    await service.createOwner('original password')
+    let sessionWasInvalidated = false
+
+    const authenticated = await service.authenticate(
+      'original password',
+      async () => {
+        const externalProcess = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+        externalProcess
+          .prepare('UPDATE owners SET revocation_generation = revocation_generation + 1 WHERE id = 1')
+          .run()
+        externalProcess.close()
+      },
+      async () => {
+        sessionWasInvalidated = true
+      }
+    )
+
+    expect(authenticated).toBe(false)
+    expect(sessionWasInvalidated).toBe(true)
+  })
+
   it('R1-S1 atomically replaces a proven password and invalidates every session', async () => {
     const stateDirectory = await mkdtemp(join(tmpdir(), 'graphitemd-security-'))
     const service = new OwnerSetupService(stateDirectory)

@@ -17,6 +17,35 @@ export {
 
 const DATABASE_FILE = 'security.sqlite'
 const OWNER_ID = 1
+
+class CredentialLock {
+  #tail = Promise.resolve()
+
+  async run<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.#tail
+    let release!: () => void
+    this.#tail = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await previous
+    try {
+      return await operation()
+    } finally {
+      release()
+    }
+  }
+}
+
+const credentialLocks = new Map<string, CredentialLock>()
+
+function credentialLock(databasePath: string): CredentialLock {
+  let lock = credentialLocks.get(databasePath)
+  if (!lock) {
+    lock = new CredentialLock()
+    credentialLocks.set(databasePath, lock)
+  }
+  return lock
+}
 export class OwnerAlreadyExistsError extends Error {
   constructor() {
     super('An owner account already exists')
@@ -46,6 +75,7 @@ export class OwnerSetupService {
   readonly #databasePath: string
   readonly #stateDirectory: string
   readonly #hasher = new Scrypt({})
+  readonly #credentialLock: CredentialLock
 
   constructor(stateDirectory: string) {
     if (!isAbsolute(stateDirectory)) {
@@ -53,6 +83,7 @@ export class OwnerSetupService {
     }
     this.#stateDirectory = resolve(stateDirectory)
     this.#databasePath = join(this.#stateDirectory, DATABASE_FILE)
+    this.#credentialLock = credentialLock(this.#databasePath)
   }
 
   async hasOwner(): Promise<boolean> {
@@ -99,65 +130,105 @@ export class OwnerSetupService {
     }
   }
 
+  async authenticate(
+    password: string,
+    establishSession: () => Promise<boolean | void>,
+    invalidateSession: () => Promise<void> = async () => {},
+  ): Promise<boolean> {
+    if (!acceptsPasswordInput(password)) return false
+    return this.#credentialLock.run(async () => {
+      const database = await this.#openDatabase()
+      let owner: { password_hash: string; revocation_generation: number } | undefined
+      try {
+        owner = database
+          .prepare('SELECT password_hash, revocation_generation FROM owners WHERE id = ?')
+          .get(OWNER_ID) as typeof owner
+      } finally {
+        database.close()
+      }
+      if (!owner || !(await this.#hasher.verify(owner.password_hash, password))) return false
+      if ((await establishSession()) === false) return false
+
+      const generationDatabase = await this.#openDatabase()
+      let generation: number | undefined
+      try {
+        generation = (generationDatabase
+          .prepare('SELECT revocation_generation FROM owners WHERE id = ?')
+          .get(OWNER_ID) as { revocation_generation: number } | undefined)?.revocation_generation
+      } finally {
+        generationDatabase.close()
+      }
+      if (generation !== owner.revocation_generation) {
+        await invalidateSession()
+        return false
+      }
+      return true
+    })
+  }
+
   async changePassword(currentPassword: string, replacementPassword: string): Promise<boolean> {
     if (!acceptsPasswordInput(currentPassword)) return false
     requirePassword(replacementPassword)
-    const database = await this.#openDatabase()
-    try {
-      const owner = database
-        .prepare('SELECT password_hash FROM owners WHERE id = ?')
-        .get(OWNER_ID) as { password_hash: string } | undefined
-      if (!owner || !(await this.#hasher.verify(owner.password_hash, currentPassword))) return false
+    return this.#credentialLock.run(async () => {
+      const database = await this.#openDatabase()
+      try {
+        const owner = database
+          .prepare('SELECT password_hash FROM owners WHERE id = ?')
+          .get(OWNER_ID) as { password_hash: string } | undefined
+        if (!owner || !(await this.#hasher.verify(owner.password_hash, currentPassword))) return false
 
-      const replacementHash = await this.#hasher.make(replacementPassword)
-      database.exec('BEGIN IMMEDIATE')
-      const result = database
-        .prepare(`
-          UPDATE owners
-          SET password_hash = ?, revocation_generation = revocation_generation + 1
-          WHERE id = ? AND password_hash = ?
-        `)
-        .run(replacementHash, OWNER_ID, owner.password_hash)
-      if (result.changes !== 1) {
-        database.exec('ROLLBACK')
-        return false
+        const replacementHash = await this.#hasher.make(replacementPassword)
+        database.exec('BEGIN IMMEDIATE')
+        const result = database
+          .prepare(`
+            UPDATE owners
+            SET password_hash = ?, revocation_generation = revocation_generation + 1
+            WHERE id = ? AND password_hash = ?
+          `)
+          .run(replacementHash, OWNER_ID, owner.password_hash)
+        if (result.changes !== 1) {
+          database.exec('ROLLBACK')
+          return false
+        }
+        database.prepare('DELETE FROM sessions').run()
+        database.exec('COMMIT')
+        return true
+      } catch (error) {
+        if (database.isTransaction) database.exec('ROLLBACK')
+        throw error
+      } finally {
+        database.close()
       }
-      database.prepare('DELETE FROM sessions').run()
-      database.exec('COMMIT')
-      return true
-    } catch (error) {
-      if (database.isTransaction) database.exec('ROLLBACK')
-      throw error
-    } finally {
-      database.close()
-    }
+    })
   }
 
   async resetPassword(replacementPassword: string): Promise<void> {
     requirePassword(replacementPassword)
     const replacementHash = await this.#hasher.make(replacementPassword)
-    const database = await this.#openDatabase()
-    try {
-      database.exec('BEGIN IMMEDIATE')
-      const result = database
-        .prepare(`
-          UPDATE owners
-          SET password_hash = ?, revocation_generation = revocation_generation + 1
-          WHERE id = ?
-        `)
-        .run(replacementHash, OWNER_ID)
-      if (result.changes !== 1) {
-        database.exec('ROLLBACK')
-        throw new OwnerNotFoundError()
+    await this.#credentialLock.run(async () => {
+      const database = await this.#openDatabase()
+      try {
+        database.exec('BEGIN IMMEDIATE')
+        const result = database
+          .prepare(`
+            UPDATE owners
+            SET password_hash = ?, revocation_generation = revocation_generation + 1
+            WHERE id = ?
+          `)
+          .run(replacementHash, OWNER_ID)
+        if (result.changes !== 1) {
+          database.exec('ROLLBACK')
+          throw new OwnerNotFoundError()
+        }
+        database.prepare('DELETE FROM sessions').run()
+        database.exec('COMMIT')
+      } catch (error) {
+        if (database.isTransaction) database.exec('ROLLBACK')
+        throw error
+      } finally {
+        database.close()
       }
-      database.prepare('DELETE FROM sessions').run()
-      database.exec('COMMIT')
-    } catch (error) {
-      if (database.isTransaction) database.exec('ROLLBACK')
-      throw error
-    } finally {
-      database.close()
-    }
+    })
   }
 
   async #openDatabase(): Promise<DatabaseSync> {

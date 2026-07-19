@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { MarkdownEditor } from './MarkdownEditor.js'
 import { SettingsPanel } from './SettingsPanel.js'
 import { AutosaveCoordinator, prepareAutosaveTransition, type AutosaveSnapshot } from './autosave.js'
@@ -74,15 +74,58 @@ function FileTree({ inventory, selected, onSelect }: {
 }) {
   const nodes = useMemo(() => buildTree(inventory), [inventory])
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const [focusPath, setFocusPath] = useState(() => nodes[0]?.path ?? '')
+  const itemRefs = useRef(new Map<string, HTMLButtonElement>())
+  const visible = useMemo(() => {
+    const result: TreeNode[] = []
+    const visit = (items: TreeNode[]) => items.forEach((node) => {
+      result.push(node)
+      if (node.kind === 'folder' && !collapsed.has(node.path)) visit(node.children)
+    })
+    visit(nodes)
+    return result
+  }, [collapsed, nodes])
+  useEffect(() => {
+    if (visible.some((node) => node.path === focusPath)) return
+    const selectedNode = visible.find((node) => node.kind === 'note' && node.resourceId === selected)
+    setFocusPath(selectedNode?.path ?? visible[0]?.path ?? '')
+  }, [focusPath, selected, visible])
+  const focus = (node: TreeNode | undefined) => {
+    if (!node) return
+    setFocusPath(node.path)
+    queueMicrotask(() => itemRefs.current.get(node.path)?.focus())
+  }
+  const onTreeKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, node: TreeNode) => {
+    const index = visible.findIndex((item) => item.path === node.path)
+    if (event.key === 'ArrowDown') focus(visible[index + 1] ?? visible[0])
+    else if (event.key === 'ArrowUp') focus(visible[index - 1] ?? visible.at(-1))
+    else if (event.key === 'Home') focus(visible[0])
+    else if (event.key === 'End') focus(visible.at(-1))
+    else if (event.key === 'ArrowRight' && node.kind === 'folder') {
+      if (collapsed.has(node.path)) setCollapsed((current) => { const next = new Set(current); next.delete(node.path); return next })
+      else focus(node.children[0])
+    } else if (event.key === 'ArrowLeft') {
+      if (node.kind === 'folder' && !collapsed.has(node.path)) setCollapsed((current) => new Set(current).add(node.path))
+      else {
+        const parent = node.path.split('/').slice(0, -1).join('/')
+        focus(visible.find((item) => item.path === parent))
+      }
+    } else return
+    event.preventDefault()
+  }
 
   const renderNodes = (items: TreeNode[], level: number): ReactNode => items.map((node) => node.kind === 'folder' ? (
     <li role="none" key={node.path}>
       <button
+        ref={(element) => { if (element) itemRefs.current.set(node.path, element); else itemRefs.current.delete(node.path) }}
         className="tree-item tree-folder"
         type="button"
         role="treeitem"
         aria-expanded={!collapsed.has(node.path)}
         aria-level={level}
+        tabIndex={focusPath === node.path ? 0 : -1}
+        onFocus={() => setFocusPath(node.path)}
+        onKeyDown={(event) => onTreeKeyDown(event, node)}
         onClick={() => setCollapsed((current) => {
           const next = new Set(current)
           if (next.has(node.path)) next.delete(node.path); else next.add(node.path)
@@ -94,11 +137,15 @@ function FileTree({ inventory, selected, onSelect }: {
   ) : (
     <li role="none" key={node.resourceId}>
       <button
+        ref={(element) => { if (element) itemRefs.current.set(node.path, element); else itemRefs.current.delete(node.path) }}
         className="tree-item tree-note"
         type="button"
         role="treeitem"
         aria-level={level}
         aria-selected={selected === node.resourceId}
+        tabIndex={focusPath === node.path ? 0 : -1}
+        onFocus={() => setFocusPath(node.path)}
+        onKeyDown={(event) => onTreeKeyDown(event, node)}
         onClick={() => onSelect({ kind: 'note', resourceId: node.resourceId, displayPath: node.path })}
       ><span aria-hidden="true">◇</span>{node.name}</button>
     </li>
@@ -131,12 +178,12 @@ function Login({ expired, initialError, onAuthenticated }: {
     } catch { setError('GraphiteMD could not reach the service.') }
     finally { setPending(false) }
   }
-  return <main className="centered-state"><form className="login-panel" onSubmit={submit}>
+  return <main className="centered-state"><form name="owner-login" className="login-panel" onSubmit={submit}>
     <div className="brand-mark" aria-hidden="true">G</div><p className="eyebrow">GraphiteMD</p>
     <h1>Sign in to GraphiteMD</h1>
     <p>{expired ? 'Your session has expired. Sign in again to continue.' : 'Enter the owner password for this host.'}</p>
     <label htmlFor="password">Password</label>
-    <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+    <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
     {error && <p className="form-error" role="alert">{error}</p>}
     <button className="primary-button" type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
   </form></main>
@@ -145,14 +192,37 @@ function Login({ expired, initialError, onAuthenticated }: {
 type DrawerName = 'Files' | 'Search' | 'Context' | 'Settings'
 
 function Drawer({ name, onClose, children }: { name: DrawerName; onClose: () => void; children: ReactNode }) {
+  const drawerRef = useRef<HTMLElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', escape)
-    return () => window.removeEventListener('keydown', escape)
+    previousFocus.current = document.activeElement as HTMLElement | null
+    const drawer = drawerRef.current
+    const background = drawer?.parentElement ? [...drawer.parentElement.parentElement!.children].filter((item) => item !== drawer.parentElement) as HTMLElement[] : []
+    const priorOverflow = document.body.style.overflow
+    background.forEach((item) => { item.inert = true })
+    document.body.style.overflow = 'hidden'
+    drawer?.querySelector<HTMLElement>('button, input, [href], [tabindex]:not([tabindex="-1"])')?.focus()
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      background.forEach((item) => { item.inert = false })
+      document.body.style.overflow = priorOverflow
+      previousFocus.current?.focus()
+    }
   }, [onClose])
+  const onKeyDown = (event: ReactKeyboardEvent) => {
+    if (event.key !== 'Tab' || !drawerRef.current) return
+    const focusable = [...drawerRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])')]
+    if (!focusable.length) return
+    const first = focusable[0]!
+    const last = focusable.at(-1)!
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
   return <div className="drawer-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="drawer" role="dialog" aria-modal="true" aria-label={name}>
-      <header className="drawer-header"><h2>{name}</h2><button autoFocus className="icon-button" type="button" aria-label={`Close ${name}`} onClick={onClose}>×</button></header>
+    <section ref={drawerRef} className="drawer" role="dialog" aria-modal="true" aria-label={name} onKeyDown={onKeyDown}>
+      <header className="drawer-header"><h2>{name}</h2><button className="icon-button" type="button" aria-label={`Close ${name}`} onClick={onClose}>×</button></header>
       {children}
     </section>
   </div>
@@ -189,7 +259,7 @@ function SearchPanel({ onSelect, onSessionExpired }: { onSelect: (resourceId: st
       setStatus(response.ok ? 'idle' : 'error')
     } catch { setStatus('error') }
   }
-  return <div className="search-panel"><form onSubmit={(event) => void submit(event)}><label htmlFor="search">Search notes</label><div className="search-controls"><input id="search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, path, properties, or body" /><button type="submit" disabled={status === 'loading'}>Search</button></div></form>
+  return <div className="search-panel"><form name="workspace-search" onSubmit={(event) => void submit(event)}><label htmlFor="search">Search notes</label><div className="search-controls"><input id="search" name="query" type="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, path, properties, or body" /><button type="submit" disabled={status === 'loading'}>Search</button></div></form>
     {status === 'loading' && <p aria-live="polite">Searching locally…</p>}
     {status === 'ready' && results.length === 0 && <p>No notes match “{query}”.</p>}
     {status === 'error' && <div role="alert"><p>Local search is unavailable. Your note and draft are unchanged.</p><button type="button" onClick={() => void rebuild()}>Rebuild index</button></div>}
@@ -238,7 +308,7 @@ function reconcileDiscoveredNote(workspace: Workspace, note: Note): Workspace {
   }
 }
 
-function Workbench({ workspace, onSessionExpired }: { workspace: Workspace; onSessionExpired: () => void }) {
+function Workbench({ workspace, onSessionExpired, onSignedOut }: { workspace: Workspace; onSessionExpired: () => void; onSignedOut: () => void }) {
   const [workspaceState, setWorkspaceState] = useState(workspace)
   const workspaceRef = useRef(workspace)
   const [selected, setSelected] = useState<Note | null>(null)
@@ -251,6 +321,11 @@ function Workbench({ workspace, onSessionExpired }: { workspace: Workspace; onSe
   const [renameDraft, setRenameDraft] = useState('')
   const [renameError, setRenameError] = useState<string | null>(null)
   const [plugins, setPlugins] = useState<PluginInventoryItem[]>([])
+  const [navigationOpen, setNavigationOpen] = useState(true)
+  const [contextOpen, setContextOpen] = useState(true)
+  const [navigationWidth, setNavigationWidth] = useState(18)
+  const [contextWidth, setContextWidth] = useState(17)
+  const closeDrawer = useCallback(() => setDrawer(null), [])
 
   useEffect(() => autosave.subscribe(setSave), [autosave])
   useEffect(() => { workspaceRef.current = workspaceState }, [workspaceState])
@@ -268,6 +343,13 @@ function Workbench({ workspace, onSessionExpired }: { workspace: Workspace; onSe
     autosave,
     () => window.confirm('This note has unsaved work. Discard the local draft?'),
   ), [autosave])
+  const logout = useCallback(async () => {
+    if (!(await guardTransition())) return
+    try {
+      const response = await getJson('/api/v1/auth/logout', { method: 'POST', headers: { 'x-xsrf-token': xsrfToken() } })
+      if (response.ok || response.status === 401) onSignedOut()
+    } catch { /* Keep the signed-in workbench when logout cannot be confirmed. */ }
+  }, [guardTransition, onSignedOut])
 
   const refreshPlugins = useCallback(async () => {
     try {
@@ -383,20 +465,21 @@ function Workbench({ workspace, onSessionExpired }: { workspace: Workspace; onSe
   const navigation = <><div className="panel-switcher"><button type="button" aria-pressed="true">Files</button><button type="button" onClick={() => setDrawer('Search')}>Search</button></div>
     {workspaceState.inventory.length ? <FileTree inventory={workspaceState.inventory} selected={selected?.resourceId ?? null} onSelect={(note) => { void openNote(note.resourceId, 'push'); setDrawer(null) }} /> : <p className="panel-empty">No Markdown notes</p>}</>
 
-  return <main className="workbench">
+  const paneStyle = { '--navigation-width': `${navigationWidth}rem`, '--context-width': `${contextWidth}rem` } as CSSProperties
+  return <main className={`workbench ${navigationOpen ? '' : 'navigation-collapsed'} ${contextOpen ? '' : 'context-collapsed'}`} style={paneStyle}>
     <header className="mobile-bar"><span className="wordmark">GraphiteMD</span><nav aria-label="Workspace tools">
       <button data-testid="mobile-files" type="button" onClick={() => setDrawer('Files')}>Files</button>
       <button type="button" onClick={() => setDrawer('Search')}>Search</button>
       <button type="button" onClick={() => setDrawer('Context')}>Context</button>
       <button type="button" onClick={() => setDrawer('Settings')}>Settings</button>
     </nav></header>
-    <aside className="navigation-panel" aria-label="Workspace navigation"><div className="panel-brand"><span className="brand-mark small" aria-hidden="true">G</span><span>GraphiteMD</span></div>{navigation}</aside>
+    <aside className="navigation-panel" aria-label="Workspace navigation"><div className="panel-brand"><span className="brand-mark small" aria-hidden="true">G</span><span>GraphiteMD</span><div className="pane-controls"><button type="button" aria-label="Make Files pane narrower" onClick={() => setNavigationWidth((value) => Math.max(14, value - 2))}>−</button><button type="button" aria-label="Make Files pane wider" onClick={() => setNavigationWidth((value) => Math.min(28, value + 2))}>+</button><button type="button" aria-label="Collapse Files pane" onClick={() => setNavigationOpen(false)}>‹</button></div></div>{navigation}</aside>
     <article className="document-region">
-      <header className="document-header"><div><p className="document-path">{selected?.displayPath ?? 'Workspace'}</p><h1>{selected ? selected.displayPath.split('/').at(-1)?.replace(/\.md$/i, '') : 'Your workspace'}</h1></div><span className="status-chip">{save.phase === 'saving' || save.phase === 'scheduled' ? 'Saving…' : save.phase === 'conflict' ? 'Conflict' : save.phase === 'error' ? 'Save failed' : save.dirty ? 'Unsaved' : 'Saved'}</span></header>
-      <div className="document-body">{workspaceState.inventory.length === 0 ? <EmptyState /> : noteStatus === 'loading' ? <div className="empty-state" aria-live="polite"><h2>Opening note…</h2></div> : selected ? <>{(save.phase === 'error' || save.phase === 'conflict') && <div className="save-recovery" role="alert"><p>{save.phase === 'conflict' ? 'This note changed on the host. Your local draft has not been overwritten.' : 'GraphiteMD could not save this draft.'}</p>{save.phase === 'error' ? <button type="button" onClick={() => void autosave.retry()}>Retry save</button> : <button type="button" onClick={() => { autosave.discard(); void openNote(selected.resourceId, 'restore') }}>Discard draft and reload</button>}</div>}<form className="rename-note" onSubmit={(event) => void renameSelected(event)}><label htmlFor="note-filename">Filename</label><input id="note-filename" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} disabled={save.pending} /><button type="submit" disabled={save.pending}>Rename</button>{renameError && <p role="alert">{renameError}</p>}</form><MarkdownEditor key={selected.resourceId} source={save.resourceId === selected.resourceId ? save.draft : selected.source} onChange={(source) => autosave.edit(source)} /></> : noteStatus === 'unavailable' ? <div className="empty-state" role="alert"><h2>Note unavailable</h2><p>The requested note could not be opened. Select another note from Files.</p></div> : <div className="empty-state"><div className="empty-mark" aria-hidden="true">◇</div><h2>Select a note</h2><p>Choose a Markdown file from Files to open it here.</p></div>}</div>
+      <header className="document-header"><div className="collapsed-pane-controls">{!navigationOpen && <button type="button" onClick={() => setNavigationOpen(true)}>Show Files</button>}{!contextOpen && <button type="button" onClick={() => setContextOpen(true)}>Show Context</button>}</div><div><p className="document-path">{selected?.displayPath ?? 'Workspace'}</p><h1>{selected ? selected.displayPath.split('/').at(-1)?.replace(/\.md$/i, '') : 'Your workspace'}</h1></div><span className="status-chip" role="status" aria-live="polite">{save.phase === 'saving' || save.phase === 'scheduled' ? 'Saving…' : save.phase === 'conflict' ? 'Conflict' : save.phase === 'error' ? 'Save failed' : save.dirty ? 'Unsaved' : 'Saved'}</span></header>
+      <div className="document-body">{workspaceState.inventory.length === 0 ? <EmptyState /> : noteStatus === 'loading' ? <div className="empty-state" aria-live="polite"><h2>Opening note…</h2></div> : selected ? <>{(save.phase === 'error' || save.phase === 'conflict') && <div className="save-recovery" role="alert"><p>{save.phase === 'conflict' ? 'This note changed on the host. Your local draft has not been overwritten.' : 'GraphiteMD could not save this draft.'}</p>{save.phase === 'error' ? <button type="button" onClick={() => void autosave.retry()}>Retry save</button> : <button type="button" onClick={() => { autosave.discard(); void openNote(selected.resourceId, 'restore') }}>Discard draft and reload</button>}</div>}<form name="rename-note" className="rename-note" onSubmit={(event) => void renameSelected(event)}><label htmlFor="note-filename">Filename</label><input id="note-filename" name="filename" autoComplete="off" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} disabled={save.pending} /><button type="submit" disabled={save.pending}>Rename</button>{renameError && <p role="alert">{renameError}</p>}</form><MarkdownEditor key={selected.resourceId} source={save.resourceId === selected.resourceId ? save.draft : selected.source} onChange={(source) => autosave.edit(source)} /></> : noteStatus === 'unavailable' ? <div className="empty-state" role="alert"><h2>Note unavailable</h2><p>The requested note could not be opened. Select another note from Files.</p></div> : <div className="empty-state"><div className="empty-mark" aria-hidden="true">◇</div><h2>Select a note</h2><p>Choose a Markdown file from Files to open it here.</p></div>}</div>
     </article>
-    <aside className="context-panel" aria-label="Note context"><ContextPlaceholder note={selected} />{systemStatusMounted && <section className="system-status-contribution" aria-labelledby="system-status-title"><p className="panel-label">System Status</p><h2 id="system-status-title">Service connected</h2><dl><div><dt>Workspace</dt><dd>Available</dd></div><div><dt>Markdown notes</dt><dd>{workspaceState.notes.length}</dd></div></dl></section>}<div className="context-actions"><button type="button" onClick={() => setDrawer('Settings')}>Settings</button></div></aside>
-    {drawer && <Drawer name={drawer} onClose={() => setDrawer(null)}>{drawer === 'Files' ? navigation : drawer === 'Search' ? <SearchPanel onSessionExpired={onSessionExpired} onSelect={(resourceId) => { void openNote(resourceId, 'push', true); setDrawer(null) }} /> : drawer === 'Context' ? <ContextPlaceholder note={selected} /> : <SettingsPanel onSessionExpired={onSessionExpired} onPluginsChanged={refreshPlugins} />}</Drawer>}
+    <aside className="context-panel" aria-label="Note context"><div className="pane-controls context-pane-controls"><button type="button" aria-label="Make Context pane narrower" onClick={() => setContextWidth((value) => Math.max(13, value - 2))}>−</button><button type="button" aria-label="Make Context pane wider" onClick={() => setContextWidth((value) => Math.min(26, value + 2))}>+</button><button type="button" aria-label="Collapse Context pane" onClick={() => setContextOpen(false)}>›</button></div><ContextPlaceholder note={selected} />{systemStatusMounted && <section className="system-status-contribution" aria-labelledby="system-status-title"><p className="panel-label">System Status</p><h2 id="system-status-title">Service connected</h2><dl><div><dt>Workspace</dt><dd>Available</dd></div><div><dt>Markdown notes</dt><dd>{workspaceState.notes.length}</dd></div></dl></section>}<div className="context-actions"><button type="button" onClick={() => setDrawer('Settings')}>Settings</button></div></aside>
+    {drawer && <Drawer name={drawer} onClose={closeDrawer}>{drawer === 'Files' ? navigation : drawer === 'Search' ? <SearchPanel onSessionExpired={onSessionExpired} onSelect={(resourceId) => { void openNote(resourceId, 'push', true); setDrawer(null) }} /> : drawer === 'Context' ? <ContextPlaceholder note={selected} /> : <SettingsPanel onSessionExpired={onSessionExpired} onPluginsChanged={refreshPlugins} onLogout={() => void logout()} />}</Drawer>}
   </main>
 }
 
@@ -406,7 +489,7 @@ export function App() {
     setState({ kind: 'loading' })
     try {
       const auth = await getJson('/api/v1/auth/current')
-      if (auth.status === 401) { setState({ kind: 'login', expired: true }); return }
+      if (auth.status === 401) { setState({ kind: 'login', expired: false }); return }
       if (!auth.ok) { setState({ kind: 'unavailable', message: 'The authentication service is unavailable.' }); return }
       const workspace = await getJson('/api/v1/workspace')
       if (workspace.status === 401) { setState({ kind: 'login', expired: true }); return }
@@ -419,5 +502,5 @@ export function App() {
   if (state.kind === 'loading') return <main className="centered-state" aria-busy="true"><p className="eyebrow">GraphiteMD</p><h1>Opening your workspace…</h1></main>
   if (state.kind === 'login') return <Login expired={state.expired} {...(state.error ? { initialError: state.error } : {})} onAuthenticated={() => void load()} />
   if (state.kind === 'unavailable') return <main className="centered-state"><div className="service-error"><p className="eyebrow">Service unavailable</p><h1>Workspace unavailable</h1><p>{state.message}</p><button className="primary-button" type="button" onClick={() => void load()}>Try again</button></div></main>
-  return <Workbench workspace={state.workspace} onSessionExpired={() => setState({ kind: 'login', expired: true })} />
+  return <Workbench workspace={state.workspace} onSessionExpired={() => setState({ kind: 'login', expired: true })} onSignedOut={() => setState({ kind: 'login', expired: false })} />
 }

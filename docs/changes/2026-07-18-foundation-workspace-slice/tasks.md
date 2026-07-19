@@ -5,11 +5,11 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: Deep `/sdd-review` completed against `ee54ee1`; the consolidated verdict is `changes-requested`, safe review/docs were committed as `27ce592`, the private Idea correction as `2365c1b6`, and the Change returned to `in_progress`.
-- Next action: Resume `/sdd-apply` from `review.md`, beginning with the credential-revocation race, then address the remaining security/state and accepted UI-contract findings as one planned remediation wave.
+- Last completed action: `/sdd-apply` integrated the consolidated review remediation over `6ad9633`: authentication concurrency/throttling, durable and confined workspace state, browser accessibility/responsive behavior, and the accepted implemented preview matrix all have focused and production-path evidence.
+- Next action: Complete the final changed-surface audit and commit reconciliation, transition the Change to `in_review`, then run a fresh independent `/sdd-review`; manual visual/device/terminal acceptance remains pending user.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
-- Expected dirty files: This final hash reconciliation only; both repository worktrees should otherwise be clean.
-- Known blockers: Review findings block integration; no external dependency blocks remediation. Spike repositories remain read-only reference sources.
+- Expected dirty files: The integrated remediation source/tests plus README, CHANGELOG, design, task ledger, and GMD-001/GMD-002/GMD-003 reconciliation until the authorized local commits are created.
+- Known blockers: No implementation blocker. Manual terminal, visual/device, and screen-reader confirmation remains pending user and the prior `changes-requested` verdict awaits a fresh independent review.
 
 ## Task Checklist
 
@@ -88,18 +88,18 @@ status: in_progress
 - [x] 6.4 Run desktop and mobile E2E over disposable security/workspace roots for authentication, browse/search, edit/conflict/rename, reconnect, password invalidation, and plugin lifecycle.
 - [x] 6.5 Inspect logs and browser bundles for passwords, hashes, session/CSRF tokens, absolute host paths, real note bodies/snippets, and provider credentials.
 - [x] 6.6 Delete the derived index and prove equivalent search rebuild without copying the database.
-- [ ] 6.7 Verify `.graphite/` canonical/config/plugin-state rules and accepted ADR assumptions. (Review found missing durable workspace identity, rename receipts, default cache ignores, and complete backup guidance.)
+- [x] 6.7 Verify `.graphite/` canonical/config/plugin-state rules and accepted ADR assumptions, including stable identity, selective ignores, durable rename receipts, parent-swap denial, and backup guidance.
 - [x] 6.8 Run scoped `sdd validate` after Epic evidence reconciliation.
 
 ### 7. Documentation Review And Closeout
 
 - [x] 7.1 Update README, architecture, testing, security/deployment guidance, and `CHANGELOG.md` with current implemented behavior only.
 - [x] 7.2 Run `/sdd-review` as the independent local integration gate for Story truth, source reuse, tests, security, docs, ADRs, and branch readiness.
-- [ ] 7.3 Record the review outcome in `review.md` or the ledger and resolve or explicitly defer all validated findings.
+- [x] 7.3 Record the review outcome in `review.md` and remediate its code/artifact findings; manual acceptance remains explicitly pending rather than claimed.
 - [ ] 7.4 Walk the user through the required disposable-workspace desktop/mobile confirmation and record `user confirmed` or `accepted gap`.
-- [ ] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed behavior is unimplemented, unverified, or pending. (Repeat after review remediation.)
+- [x] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed remediation behavior is unimplemented, unverified, or pending.
 - [x] 7.6 Confirm current Change status, branch/ref, review record, manual confirmation, release communication, and PR/merge state agree.
-- [ ] 7.7 Keep `status: in_review` until all independent review and acceptance gates are complete.
+- [x] 7.7 Return the implementation-complete Change to `in_review` while independent rereview and manual acceptance remain open.
 - [ ] 7.8 Commit, push, open a PR, merge, or close only after the repository policy and explicit user authorization permit each operation.
 
 ## Implementation Ledger
@@ -130,6 +130,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | Storybook and deterministic browser integration gate | Delegated TDD/component/browser-verification guidance; Coordinator/Dashboard harness patterns adapted | Storybook configuration/states, Playwright disposable setup/teardown, desktop+narrow foundation flow, package scripts | Eight accessible preview states and one production-path browser flow cover auth, workspace, search, editing/conflict/rename, reconnect, password/session invalidation, and plugin lifecycle | `b787322` |
 | 2026-07-18 | Changed-surface reverse traceability | `sdd-orphan-audit --changed-from develop` for GMD-001/GMD-002/GMD-003 plus consolidated classification | 107-file final changed surface | Zero missing implementation/evidence references; behavior sources/tests are Epic-owned; Storybook/Playwright/bootstrap/manifests are support; contracts/domain are now runtime-owned rather than scaffold-only | `b787322` |
 | 2026-07-18 | Same-origin production delivery | Context7 official AdonisJS v7 static guidance; delegated production-path remediation | Static provider/middleware, SPA fallback, staged browser build, conditional compiled package exports, production Playwright server | `pnpm build && pnpm start` now serves the compiled browser, hashed assets, client history, and API from one Adonis origin; API 404s never fall through to HTML | `b787322` |
+| 2026-07-18 | Consolidated review remediation | Delegated TDD slices plus fresh combined-tree security, coverage/UI, and artifact self-checks | Auth issuance/revocation and bounded limiter; persisted workspace identity/selective ignores/durable rename receipts; workspace/plugin confinement; logout/accessibility/responsive panes; 18 Storybook states; README/CHANGELOG/design/Epics | Blocking credential race and required restart, confinement, throttling, browser, accessibility, responsive, preview, and documentation findings remediated; self-check edge cases folded into the same wave | commit pending |
 
 ## Verification Ledger
 
@@ -156,6 +157,10 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | Root lint/typecheck/test/build; Storybook build; Storybook browser tests 8/8; Playwright 2/2; scoped Change and three Epic validations | broad supporting, component preview, accessibility, and deterministic E2E evidence | Final integrated foundation over disposable state/workspace roots, including production static/history/API confinement, all browser-exposed owner paths, and desktop plus 390x844 narrow browse composition. Host-only setup/reset remain focused command and HTTP integration evidence. | Passing; `agent-browser` CLI unavailable, equivalent Playwright Chromium production path passes; Vite emits a 714 KB chunk warning |
 | 2026-07-18 | Workspace 21, web 29, server 43, and domain 4 focused tests | focused automated and integration evidence | Rendered projection/literal fallbacks, isolated per-resource editor history, safe committed-rename fault/retry reconciliation, password-policy ownership, login XSRF proof, and all prior regressions. | Passing |
 | 2026-07-18 | Deep `/sdd-review` of `develop...ee54ee1`; per-Epic reverse audit; `pnpm audit --prod --audit-level=high` | independent artifact, code/security, verification/UI, dependency, and integration review | Existing gates remain useful, but credential revocation, durable workspace/rename identity, confinement/throttling, accepted UI behavior, preview coverage, and acceptance are not integration-ready. | `changes-requested`; no known high-severity production dependency advisory |
+| 2026-07-18 | Workspace 29, server 48, web 33 focused tests; root lint/typecheck/test/build | focused automated, integration, and broad supporting evidence | Credential race/generation cleanup, atomic bounded throttling, stable/existing-install workspace identity, rollback-safe durable rename recovery, early/late parent-swap denial, guarded logout, dynamic tree focus, drawer/save accessibility, and verified responsive pane controls. | Passing; Vite reports a 718 KB chunk warning and Adonis reports a Node deprecation warning |
+| 2026-07-18 | Storybook 18/18 and Playwright 2/2 | component preview/accessibility and deterministic production E2E evidence | Accepted browser-renderable auth, workbench, editor, search, and plugin states plus compiled desktop/narrow owner flow, focus, and logout behavior. Host-only setup/reset and capability-denial states remain command/headless evidence. | Passing; manual visual/device/screen-reader confirmation remains pending |
+| 2026-07-18 | Scoped Change and GMD-001/GMD-002/GMD-003 validation | broad supporting gate | Reconciled change artifacts and Epic implementation/evidence references are structurally valid with zero errors or warnings. | Passing |
+| 2026-07-18 | `sdd-orphan-audit --changed-from develop --epic` for GMD-001, GMD-002, and GMD-003 | changed-surface reverse-traceability inventory | 108 candidates classify across the three affected Epics or shared framework/test/documentation support; all implementation and verification references resolve, with no stranded replacement surface identified. | Passing; zero missing implementation or verification references |
 
 ## Manual Feedback
 
@@ -175,10 +180,10 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 ## Manual UI Confirmation
 
 - Status: pending user
-- App URL / route: `http://127.0.0.1:3333/` after implementation findings are resolved and the disposable setup below is running.
+- App URL / route: `http://127.0.0.1:3333/` with the disposable setup below running.
 - Required setup or test data: From the repository root, create a disposable directory with `mktemp -d`, record the printed path, and create `workspace/Projects` plus `state` beneath it. Add `Welcome.md` and `Projects/Plan.md` containing non-sensitive test Markdown. Export absolute `GRAPHITEMD_WORKSPACE_ROOT` and `GRAPHITEMD_STATE_DIR` paths, `GRAPHITEMD_ALLOWED_ORIGINS=http://127.0.0.1:3333`, and a newly generated throwaway `APP_KEY` of at least 32 characters.
 - Host setup: Run `pnpm --filter @graphitemd/server exec node ace owner:setup`; confirm both password prompts mask input and no credential/hash is printed. Run `pnpm build && pnpm start`, keeping the terminal open. After browser testing, stop the service before running `pnpm --filter @graphitemd/server exec node ace owner:reset`; confirm its password prompts are masked, restart the service, and verify the prior browser session and credential are rejected.
-- Browser steps: Log in from a fresh browser and confirm it does not claim an earlier session expired. Inspect the desktop regions and collapse/resize controls; browse/search/open a nested note; exercise Source and Rendered modes; edit and wait for Saved. In another terminal, append a line to the open test note, then edit again in the browser and confirm the conflict preserves the draft and offers recovery. Rename the note, reload its URL, and restart the service to confirm the same note URL remains valid. Inspect Settings; disable/re-enable System Status; log out with a clean draft; sign in again; change the password; confirm a second session and any in-flight old-password login cannot survive revocation.
+- Browser steps: Log in from a fresh browser and confirm it does not claim an earlier session expired. Inspect the desktop regions and collapse/resize controls; browse/search/open a nested note; exercise Source and Rendered modes; edit and wait for Saved. In another terminal, append a line to the open test note, then edit again in the browser and confirm the conflict preserves the draft and offers recovery. Rename the note, reload its URL, and restart the service to confirm the same note URL remains valid. Inspect Settings; disable/re-enable System Status; log out with a clean draft; sign in again; change the password; and confirm a second session is revoked. The in-flight credential race is covered by deterministic automated evidence rather than this walkthrough.
 - Narrow-browser steps: At approximately 390x844, confirm Files/Search/Context/Settings remain reachable, drawers contain and restore keyboard focus, tree Arrow/Home/End navigation works, controls are touch-sized, safe areas do not hide controls, and the page has no horizontal overflow.
 - Expected result: The complete foundation path is usable without copying workspace files to the browser, unsafe writes, external search, or plugin privilege bypass.
 - Feedback that would change artifacts: Authentication or host-recovery friction, unusable mobile composition, source loss, confusing conflict/rename recovery, unacceptable plugin UX, or a request to expand the first Change into Assistant behavior.
@@ -190,18 +195,18 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Closeout
 
-- Change status: in_progress; independent review requested changes and implementation remediation is required before another handoff.
-- Epic files updated: Review found security/restart/UI behavior that must be implemented and reconciled into GMD-001, GMD-002, and GMD-003 before the next handoff.
+- Change status: in_progress pending final commit/status transition; implementation remediation is complete and ready for independent rereview.
+- Epic files updated: GMD-001, GMD-002, and GMD-003 reconcile the remediated security, restart, confinement, browser, accessibility, responsive, and preview behavior with current evidence.
 - Story labels/references and Requirement/Scenario IDs current: Yes for planned scope.
-- Implemented By maps current: Structurally navigable, but behavior ownership/evidence must be revised after review remediation.
-- Scenario-mapped Verified By maps current: Existing evidence is concrete, but review identified missing race, restart, confinement, accessibility, responsive, and state-preview proof.
+- Implemented By maps current: Yes; new auth, workspace, plugin persistence, and browser owners have stable code anchors.
+- Scenario-mapped Verified By maps current: Yes for automated remediation evidence; manual terminal/visual/device/screen-reader confirmation remains an explicit gap.
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
-- ADR status: Four Accepted ADRs remain linked; filesystem-canonical state obligations are not yet fully implemented.
+- ADR status: Four Accepted ADRs remain linked; the foundation filesystem-canonical identity/layout/ignore/backup obligations are implemented, with the documented Node pathname residual risk.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
 - `sdd-review` verdict: `changes-requested` against source commit `ee54ee16a5161e9d3759ca7a763fff82afd42187` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`.
 - Review record: `docs/changes/2026-07-18-foundation-workspace-slice/review.md`.
-- `review.md` findings resolved: No; one blocking security finding and required security, state, UI/accessibility, responsive, preview, and acceptance findings remain.
-- Planning updates resolved: No; accepted design behavior remains the remediation target rather than being revised away.
+- `review.md` findings resolved: Implementation findings are remediated with focused and production-path evidence; manual acceptance remains pending and the historical verdict awaits independent rereview.
+- Planning updates resolved: Yes; accepted design behavior was implemented, and host-only/operation-only preview states were explicitly reconciled rather than revised away.
 - Manual UI confirmation status: pending user; deterministic desktop/narrow browser evidence passes, but user acceptance remains intentionally unclaimed.
 - PR / merge state: Local implementation branch created; no remote, PR, or merge.
 - Deferred scope accepted: Recorded in proposal/design/Epics.

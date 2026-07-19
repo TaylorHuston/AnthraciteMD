@@ -106,7 +106,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Files' })).not.toBeInTheDocument())
   })
 
-  it('returns an expired session to an honest login state', async () => {
+  it('distinguishes an initial unauthenticated browser from an expired session', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementationOnce(() => response(401, {
       error: { code: 'unauthenticated', message: 'Authentication required.' },
     })))
@@ -114,7 +114,96 @@ describe('GMD-002/S1 responsive browse shell', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Sign in to GraphiteMD' })).toBeVisible()
-    expect(screen.getByText('Your session has expired. Sign in again to continue.')).toBeVisible()
+    expect(screen.getByText('Enter the owner password for this host.')).toBeVisible()
+    expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+  })
+
+  it('traps drawer focus and restores it to the opener', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockImplementationOnce(() => response(200, { owner: { id: 'owner' } }))
+      .mockImplementationOnce(() => response(200, workspace)))
+    const user = userEvent.setup()
+    render(<App />)
+    const opener = await screen.findByTestId('mobile-files')
+    await user.click(opener)
+    const drawer = screen.getByRole('dialog', { name: 'Files' })
+    const close = within(drawer).getByRole('button', { name: 'Close Files' })
+    expect(close).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(within(drawer).getByRole('treeitem', { name: /Alpha/ })).toHaveFocus()
+    await user.keyboard('{Escape}')
+    expect(opener).toHaveFocus()
+  })
+
+  it('moves one tree tab stop with Arrow, Home, End, Left, and Right', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockImplementationOnce(() => response(200, { owner: { id: 'owner' } }))
+      .mockImplementationOnce(() => response(200, workspace)))
+    const user = userEvent.setup()
+    render(<App />)
+    const tree = await screen.findByRole('tree', { name: 'Workspace files' })
+    const folder = within(tree).getByRole('treeitem', { name: /Areas/ })
+    folder.focus()
+    await user.keyboard('{ArrowRight}{ArrowDown}')
+    expect(within(tree).getByRole('treeitem', { name: /Alpha/ })).toHaveFocus()
+    await user.keyboard('{Home}')
+    expect(folder).toHaveFocus()
+    await user.keyboard('{End}')
+    expect(within(tree).getByRole('treeitem', { name: /Alpha/ })).toHaveFocus()
+    expect(within(tree).getAllByRole('treeitem').filter((item) => item.tabIndex === 0)).toHaveLength(1)
+  })
+
+  it('bounds, collapses, and reopens both desktop side panes', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockImplementationOnce(() => response(200, { owner: { id: 'owner' } }))
+      .mockImplementationOnce(() => response(200, workspace)))
+    const user = userEvent.setup()
+    render(<App />)
+    const workbench = (await screen.findByRole('tree', { name: 'Workspace files' })).closest('main')!
+
+    const widerFiles = screen.getByRole('button', { name: 'Make Files pane wider' })
+    for (let index = 0; index < 8; index += 1) await user.click(widerFiles)
+    expect(workbench.getAttribute('style')).toContain('--navigation-width: 28rem')
+    await user.click(screen.getByRole('button', { name: 'Collapse Files pane' }))
+    expect(workbench).toHaveClass('navigation-collapsed')
+    await user.click(screen.getByRole('button', { name: 'Show Files' }))
+    expect(workbench).not.toHaveClass('navigation-collapsed')
+
+    const narrowerContext = screen.getByRole('button', { name: 'Make Context pane narrower' })
+    for (let index = 0; index < 5; index += 1) await user.click(narrowerContext)
+    expect(workbench.getAttribute('style')).toContain('--context-width: 13rem')
+    await user.click(screen.getByRole('button', { name: 'Collapse Context pane' }))
+    expect(workbench).toHaveClass('context-collapsed')
+    await user.click(screen.getByRole('button', { name: 'Show Context' }))
+    expect(workbench).not.toHaveClass('context-collapsed')
+  })
+
+  it('guards logout with a dirty draft and sends the XSRF token after confirmation', async () => {
+    document.cookie = 'XSRF-TOKEN=logout-token'
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => response(200, { owner: { id: 'owner' } }))
+      .mockImplementationOnce(() => response(200, workspace))
+      .mockImplementationOnce(() => response(200, { plugins: [] }))
+      .mockImplementationOnce(() => response(200, { resourceId: 'res_alpha', displayPath: 'Alpha.md', source: '# Alpha\n', revision: 'rev_alpha', yamlProperties: [], yamlParseError: null }))
+      .mockImplementationOnce(() => response(503, { error: { code: 'save_unavailable' } }))
+      .mockImplementationOnce(() => response(200, { plugins: [] }))
+      .mockImplementationOnce(() => response(200, {}))
+    vi.stubGlobal('fetch', fetchMock)
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const user = userEvent.setup(); const view = render(<App />)
+    await user.click(await screen.findByRole('treeitem', { name: /Alpha/ }))
+    const editor = view.container.querySelector('.cm-content') as HTMLElement
+    await user.click(editor); await user.keyboard('{Control>}a{/Control}# Local draft')
+    await screen.findByRole('button', { name: 'Retry save' }, { timeout: 2000 })
+    await user.click(screen.getAllByRole('button', { name: 'Settings' })[0]!)
+    const settings = screen.getByRole('dialog', { name: 'Settings' })
+    await user.click(within(settings).getByRole('button', { name: 'Log out' }))
+    expect(screen.getByRole('dialog', { name: 'Settings' })).toBeVisible()
+    await user.click(within(settings).getByRole('button', { name: 'Log out' }))
+    expect(await screen.findByText('Enter the owner password for this host.')).toBeVisible()
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/auth/logout', expect.objectContaining({
+      method: 'POST', headers: expect.objectContaining({ 'x-xsrf-token': 'logout-token' }),
+    }))
   })
 
   it('R3-S2 restores valid reload and Back navigation through the note API', async () => {
@@ -271,6 +360,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
     const filename = screen.getByRole('textbox', { name: 'Filename' })
     await user.clear(filename); await user.type(filename, 'Renamed.md'); await user.click(screen.getByRole('button', { name: 'Rename' }))
     await screen.findByRole('heading', { name: 'Renamed', level: 1 })
+    await waitFor(() => expect(screen.getAllByRole('treeitem').filter((item) => item.tabIndex === 0)).toHaveLength(1))
     const editor = view.container.querySelector('.cm-content') as HTMLElement
     await user.click(editor); await user.keyboard('{Control>}a{/Control}# Edited')
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/notes/res_renamed', expect.objectContaining({ method: 'PUT' })), { timeout: 2000 })

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { access, link, lstat, open, readdir, realpath, rename, stat, unlink } from 'node:fs/promises'
+import { access, link, lstat, mkdir, open, readFile, readdir, realpath, rename, stat, unlink } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { basename, dirname, join, posix } from 'node:path'
 import type { WorkspaceId } from '@graphitemd/contracts'
@@ -83,16 +83,33 @@ interface OpenWorkspace {
   readonly snapshot: WorkspaceSnapshot
 }
 
+interface PendingRename {
+  readonly sourcePath: string
+  readonly targetPath: string
+  readonly targetDisplayPath: string
+  readonly expectedRevision: string
+  readonly result?: RenameNoteResult
+  readonly status?: 'prepared' | 'committed'
+}
+
 export interface WorkspaceInventoryOptions {
   readonly excludedPaths?: readonly string[]
   readonly maxSourceBytes?: number
   /** Fault boundary used by deterministic recovery tests after the native rename has committed. */
   readonly afterRenameCommit?: () => Promise<void>
+  /** Fault boundary used by deterministic recovery tests after the exclusive link is created. */
+  readonly afterRenameLink?: () => Promise<void>
+  /** Fault boundary used by deterministic rollback tests immediately before source unlink. */
+  readonly beforeSourceUnlink?: () => Promise<void>
+  /** Fault boundary used to prove ancestor confinement at the final filesystem commit. */
+  readonly beforeMutationCommit?: (context: Readonly<{ operation: 'save' | 'rename' }>) => Promise<void>
 }
 
-type NormalizedWorkspaceInventoryOptions = Required<Omit<WorkspaceInventoryOptions, 'afterRenameCommit'>>
+type NormalizedWorkspaceInventoryOptions = Required<Omit<WorkspaceInventoryOptions, 'afterRenameCommit' | 'afterRenameLink' | 'beforeSourceUnlink' | 'beforeMutationCommit'>>
 
 const DEFAULT_MAX_SOURCE_BYTES = 1024 * 1024
+const WORKSPACE_ID = /^wrk_[a-f0-9]{32}$/
+const GRAPHITE_GITIGNORE = '/cache/\n/operations/\n'
 
 export class WorkspaceUnavailableError extends Error {
   constructor(readonly reason: UnavailableWorkspaceSnapshot['reason']) {
@@ -131,16 +148,13 @@ const mutationQueues = new Map<string, Promise<void>>()
  */
 export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
   #opened: OpenWorkspace | null = null
-  readonly #pendingRenames = new Map<string, Readonly<{
-    sourcePath: string
-    targetPath: string
-    targetDisplayPath: string
-    expectedRevision: string
-    result?: RenameNoteResult
-  }>>()
+  readonly #pendingRenames = new Map<string, PendingRename>()
 
   readonly #inventoryOptions: NormalizedWorkspaceInventoryOptions
   readonly #afterRenameCommit: (() => Promise<void>) | undefined
+  readonly #afterRenameLink: (() => Promise<void>) | undefined
+  readonly #beforeSourceUnlink: (() => Promise<void>) | undefined
+  readonly #beforeMutationCommit: WorkspaceInventoryOptions['beforeMutationCommit']
 
   constructor(
     private readonly configuredRoot: string | undefined,
@@ -151,12 +165,15 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
       maxSourceBytes: inventoryOptions.maxSourceBytes ?? DEFAULT_MAX_SOURCE_BYTES,
     }
     this.#afterRenameCommit = inventoryOptions.afterRenameCommit
+    this.#afterRenameLink = inventoryOptions.afterRenameLink
+    this.#beforeSourceUnlink = inventoryOptions.beforeSourceUnlink
+    this.#beforeMutationCommit = inventoryOptions.beforeMutationCommit
   }
 
   async openConfigured(): Promise<WorkspaceSnapshot> {
     try {
       const opened = await inspectRoot(this.configuredRoot)
-      const workspaceId = `wrk_${randomUUID().replaceAll('-', '')}` as WorkspaceId
+      const workspaceId = await provisionWorkspaceState(opened.root)
       const inventory = await inventoryMarkdown(opened.root, workspaceId, this.#inventoryOptions)
       const snapshot: WorkspaceSnapshot = {
         workspaceId,
@@ -275,6 +292,7 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
           await targetHandle.close()
         }
         const temporaryPath = join(dirname(expectedPath), `.${basename(expectedPath)}.${randomUUID()}.tmp`)
+        const parentIdentity = await inspectDirectoryIdentity(dirname(expectedPath))
         let temporaryCreated = false
         try {
           const temporary = await open(
@@ -293,6 +311,15 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
           const beforeCommit = await this.readNote(resourceId)
           if (beforeCommit.revision !== expectedRevision) {
             throw new WorkspaceRevisionConflictError(beforeCommit.revision)
+          }
+          await this.#beforeMutationCommit?.({ operation: 'save' })
+          try {
+            await assertDirectoryIdentity(dirname(expectedPath), parentIdentity)
+          } catch (error) {
+            // The temporary file now belongs to the retained directory identity.
+            // Do not resolve its former pathname through an attacker-controlled replacement.
+            temporaryCreated = false
+            throw error
           }
           await rename(temporaryPath, expectedPath)
           temporaryCreated = false
@@ -316,7 +343,7 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
     const note = currentWorkspace.notes.find((candidate) => candidate.resourceId === resourceId)
     if (!opened) throw new WorkspaceResourceUnavailableError()
     if (!note) {
-      const pending = this.#pendingRenames.get(resourceId)
+      const pending = this.#pendingRenames.get(resourceId) ?? await this.#loadRenameReceipt(opened, resourceId)
       if (!pending || pending.expectedRevision !== expectedRevision || basename(pending.targetPath) !== fileName) {
         throw new WorkspaceResourceUnavailableError()
       }
@@ -337,6 +364,10 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
     }
     const targetPath = join(opened.root, ...targetDisplayPath.split('/'))
     return withMutationLocks([sourcePath, targetPath], async () => {
+        const sourceParentIdentity = await inspectDirectoryIdentity(dirname(sourcePath))
+        const targetParentIdentity = sourcePath === targetPath
+          ? sourceParentIdentity
+          : await inspectDirectoryIdentity(dirname(targetPath))
         let current: MarkdownNote
         try {
           current = await this.readNote(resourceId)
@@ -348,26 +379,39 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
           throw new WorkspaceRevisionConflictError(current.revision)
         }
         if (sourcePath === targetPath) return { note: current, workspace: opened.snapshot }
+        const receipt = await this.#loadRenameReceipt(opened, resourceId)
+        if (receipt?.status === 'prepared' && receipt.sourcePath === sourcePath && receipt.targetPath === targetPath &&
+            receipt.expectedRevision === expectedRevision) {
+          return this.#finishPreparedRename(resourceId, opened, receipt)
+        }
+        await this.#persistRenameReceipt(opened, resourceId, note.displayPath, targetDisplayPath, expectedRevision, 'prepared')
+        this.#pendingRenames.set(resourceId, { sourcePath, targetPath, targetDisplayPath, expectedRevision, status: 'prepared' })
+        await this.#beforeMutationCommit?.({ operation: 'rename' })
+        await assertDirectoryIdentity(dirname(sourcePath), sourceParentIdentity)
+        await assertDirectoryIdentity(dirname(targetPath), targetParentIdentity)
         try {
           await link(sourcePath, targetPath)
         } catch (error) {
+          await this.#clearRenameReceipt(opened, resourceId)
           if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
             throw new WorkspaceInvalidMutationError('collision')
           }
           throw error
         }
+        await this.#afterRenameLink?.()
         try {
+          await this.#beforeSourceUnlink?.()
           await unlink(sourcePath)
         } catch {
-          await unlink(targetPath).catch(() => undefined)
+          let rolledBack = false
+          try {
+            await unlink(targetPath)
+            rolledBack = true
+          } catch { /* Retain prepared intent when rollback outcome is not known. */ }
+          if (rolledBack) await this.#clearRenameReceipt(opened, resourceId)
           throw new WorkspaceInvalidMutationError('indeterminate')
         }
-        this.#pendingRenames.set(resourceId, {
-          sourcePath,
-          targetPath,
-          targetDisplayPath,
-          expectedRevision,
-        })
+        await this.#persistRenameReceipt(opened, resourceId, note.displayPath, targetDisplayPath, expectedRevision, 'committed')
         try {
           await this.#afterRenameCommit?.()
         } catch {
@@ -377,6 +421,104 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
       this.#pendingRenames.set(resourceId, { sourcePath, targetPath, targetDisplayPath, expectedRevision, result })
       return result
     })
+  }
+
+  async #finishPreparedRename(
+    resourceId: string,
+    opened: OpenWorkspace,
+    pending: PendingRename,
+  ): Promise<RenameNoteResult> {
+    const sourceParentIdentity = await inspectDirectoryIdentity(dirname(pending.sourcePath))
+    const targetParentIdentity = await inspectDirectoryIdentity(dirname(pending.targetPath))
+    let source
+    let target
+    try {
+      source = await lstat(pending.sourcePath, { bigint: true })
+      target = await lstat(pending.targetPath, { bigint: true })
+    } catch {
+      throw new WorkspaceInvalidMutationError('indeterminate')
+    }
+    if (!source.isFile() || !target.isFile() || source.dev !== target.dev || source.ino !== target.ino ||
+        await revisionAtPath(pending.targetPath, this.#inventoryOptions.maxSourceBytes) !== pending.expectedRevision) {
+      throw new WorkspaceInvalidMutationError('indeterminate')
+    }
+    await assertDirectoryIdentity(dirname(pending.sourcePath), sourceParentIdentity)
+    await assertDirectoryIdentity(dirname(pending.targetPath), targetParentIdentity)
+    await unlink(pending.sourcePath)
+    await this.#persistRenameReceipt(
+      opened,
+      resourceId,
+      opened.snapshot.notes.find((note) => note.resourceId === resourceId)?.displayPath ?? basename(pending.sourcePath),
+      pending.targetDisplayPath,
+      pending.expectedRevision,
+      'committed',
+    )
+    this.#pendingRenames.set(resourceId, { ...pending, status: 'committed' })
+    return this.#reconcileCommittedRename(
+      resourceId, opened, pending.sourcePath, pending.targetPath, pending.targetDisplayPath, pending.expectedRevision,
+    )
+  }
+
+  async #persistRenameReceipt(
+    opened: OpenWorkspace,
+    resourceId: string,
+    sourceDisplayPath: string,
+    targetDisplayPath: string,
+    expectedRevision: string,
+    status: 'prepared' | 'committed',
+  ): Promise<void> {
+    if (!/^res_[a-f0-9]{64}$/.test(resourceId)) throw new WorkspaceResourceUnavailableError()
+    const directory = join(opened.root, '.graphite', 'operations', 'renames')
+    await mkdir(directory, { recursive: true, mode: 0o700 })
+    if (await realpath(directory) !== directory) throw new WorkspaceInvalidMutationError('indeterminate')
+    await atomicWorkspaceFile(join(directory, `${resourceId}.json`), `${JSON.stringify({
+      schemaVersion: 1,
+      resourceId,
+      sourceDisplayPath,
+      targetDisplayPath,
+      expectedRevision,
+      status,
+    }, null, 2)}\n`)
+  }
+
+  async #clearRenameReceipt(opened: OpenWorkspace, resourceId: string): Promise<void> {
+    if (!/^res_[a-f0-9]{64}$/.test(resourceId)) throw new WorkspaceResourceUnavailableError()
+    const receiptPath = join(opened.root, '.graphite', 'operations', 'renames', `${resourceId}.json`)
+    try {
+      await unlink(receiptPath)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    this.#pendingRenames.delete(resourceId)
+  }
+
+  async #loadRenameReceipt(opened: OpenWorkspace, resourceId: string): Promise<PendingRename | undefined> {
+    if (!/^res_[a-f0-9]{64}$/.test(resourceId)) return undefined
+    try {
+      const value: unknown = JSON.parse(await readFile(
+        join(opened.root, '.graphite', 'operations', 'renames', `${resourceId}.json`), 'utf8',
+      ))
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+      const receipt = value as Record<string, unknown>
+      if (receipt.schemaVersion !== 1 || receipt.resourceId !== resourceId ||
+          (receipt.status !== 'prepared' && receipt.status !== 'committed') ||
+          typeof receipt.sourceDisplayPath !== 'string' || typeof receipt.targetDisplayPath !== 'string' ||
+          typeof receipt.expectedRevision !== 'string' ||
+          !isSafeDisplayPath(receipt.sourceDisplayPath) || !isSafeDisplayPath(receipt.targetDisplayPath)) return undefined
+      const status = receipt.status as 'prepared' | 'committed'
+      const pending: PendingRename = {
+        sourcePath: join(opened.root, ...receipt.sourceDisplayPath.split('/')),
+        targetPath: join(opened.root, ...receipt.targetDisplayPath.split('/')),
+        targetDisplayPath: receipt.targetDisplayPath,
+        expectedRevision: receipt.expectedRevision,
+        status,
+      }
+      this.#pendingRenames.set(resourceId, pending)
+      return pending
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+      return undefined
+    }
   }
 
   async #reconcileCommittedRename(
@@ -458,6 +600,70 @@ export class ConfiguredWorkspaceAuthority implements WorkspaceAuthority {
     }
     if (canonicalPath !== expectedPath) throw new WorkspaceResourceUnavailableError()
     return operation(opened, note, expectedPath)
+  }
+}
+
+async function inspectDirectoryIdentity(path: string): Promise<FileIdentity> {
+  if (await realpath(path) !== path) throw new WorkspaceResourceUnavailableError()
+  const metadata = await stat(path, { bigint: true })
+  if (!metadata.isDirectory()) throw new WorkspaceResourceUnavailableError()
+  return { device: metadata.dev, inode: metadata.ino }
+}
+
+async function assertDirectoryIdentity(path: string, expected: FileIdentity): Promise<void> {
+  const actual = await inspectDirectoryIdentity(path)
+  if (actual.device !== expected.device || actual.inode !== expected.inode) {
+    throw new WorkspaceResourceUnavailableError()
+  }
+}
+
+async function provisionWorkspaceState(root: string): Promise<WorkspaceId> {
+  const graphite = join(root, '.graphite')
+  await mkdir(graphite, { recursive: true, mode: 0o700 })
+  if (await realpath(graphite) !== graphite) throw new Error('Workspace state must not traverse symbolic links.')
+  const configurationPath = join(graphite, 'workspace.json')
+  let workspaceId: WorkspaceId
+  try {
+    const parsed: unknown = JSON.parse(await readFile(configurationPath, 'utf8'))
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed) ||
+        Object.keys(parsed).sort().join(',') !== 'schemaVersion,workspaceId' ||
+        (parsed as { schemaVersion?: unknown }).schemaVersion !== 1 ||
+        typeof (parsed as { workspaceId?: unknown }).workspaceId !== 'string' ||
+        !WORKSPACE_ID.test((parsed as { workspaceId: string }).workspaceId)) {
+      throw new Error('Workspace configuration is invalid.')
+    }
+    workspaceId = (parsed as { workspaceId: WorkspaceId }).workspaceId
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    workspaceId = `wrk_${randomUUID().replaceAll('-', '')}` as WorkspaceId
+    await atomicWorkspaceFile(configurationPath, `${JSON.stringify({ schemaVersion: 1, workspaceId }, null, 2)}\n`)
+  }
+  const ignorePath = join(graphite, '.gitignore')
+  try {
+    await open(ignorePath, constants.O_RDONLY | constants.O_NOFOLLOW).then((handle) => handle.close())
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    await atomicWorkspaceFile(ignorePath, GRAPHITE_GITIGNORE)
+  }
+  return workspaceId
+}
+
+async function atomicWorkspaceFile(path: string, source: string): Promise<void> {
+  const temporary = `${path}.${randomUUID()}.tmp`
+  let created = false
+  try {
+    const handle = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600)
+    created = true
+    try {
+      await handle.writeFile(source, 'utf8')
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    await rename(temporary, path)
+    created = false
+  } finally {
+    if (created) await unlink(temporary).catch(() => undefined)
   }
 }
 
@@ -638,6 +844,11 @@ function normalizeExcludedPaths(paths: readonly string[]): readonly string[] {
 
 function isExcluded(displayPath: string, excludedPaths: readonly string[]): boolean {
   return excludedPaths.some((excluded) => displayPath === excluded || displayPath.startsWith(`${excluded}/`))
+}
+
+function isSafeDisplayPath(value: string): boolean {
+  return value.length > 0 && value === value.replaceAll('\\', '/') && !posix.isAbsolute(value) &&
+    value.split('/').every((segment) => segment.length > 0 && segment !== '.' && segment !== '..')
 }
 
 async function isEligibleUtf8Markdown(path: string, maxSourceBytes: number): Promise<boolean> {

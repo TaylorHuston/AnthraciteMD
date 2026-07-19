@@ -23,7 +23,7 @@ function statusLabel(status: Plugin['status']) {
   return status.split('_').map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`).join(' ')
 }
 
-export function SettingsPanel({ onSessionExpired, onPluginsChanged }: { onSessionExpired: () => void; onPluginsChanged?: () => void }) {
+export function SettingsPanel({ onSessionExpired, onPluginsChanged, onLogout }: { onSessionExpired: () => void; onPluginsChanged?: () => void; onLogout?: () => void }) {
   const [plugins, setPlugins] = useState<Plugin[] | null>(null)
   const [pluginError, setPluginError] = useState<string | null>(null)
   const [changingPlugin, setChangingPlugin] = useState<string | null>(null)
@@ -90,13 +90,15 @@ export function SettingsPanel({ onSessionExpired, onPluginsChanged }: { onSessio
   return <div className="settings-panel">
     <section aria-labelledby="account-settings"><p className="panel-label">Account</p><h2 id="account-settings">Change password</h2>
       <p>Changing the owner password signs out every browser session.</p>
-      <form className="settings-form" onSubmit={(event) => void changePassword(event)}>
-        <label htmlFor="current-password">Current password</label><input id="current-password" type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
-        <label htmlFor="new-password">New password</label><input id="new-password" type="password" autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
-        <label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" type="password" autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+      <form name="change-password" className="settings-form" onSubmit={(event) => void changePassword(event)}>
+        <label htmlFor="current-password">Current password</label><input id="current-password" name="current-password" type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
+        <label htmlFor="new-password">New password</label><input id="new-password" name="new-password" type="password" autoComplete="new-password" aria-describedby="password-guidance" required value={password} onChange={(event) => setPassword(event.target.value)} />
+        <p id="password-guidance" className="field-guidance">Use a long, unique passphrase that you can remember.</p>
+        <label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" name="confirm-password" type="password" autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
         {passwordError && <p className="form-error" role="alert">{passwordError}</p>}
         <button className="primary-button" type="submit" disabled={changingPassword}>{changingPassword ? 'Changing password…' : 'Change password'}</button>
       </form>
+      {onLogout && <button className="secondary-button" type="button" onClick={onLogout}>Log out</button>}
     </section>
     <section aria-labelledby="plugin-settings"><p className="panel-label">Extensions</p><h2 id="plugin-settings">Bundled plugins</h2>
       <p>Inspect what each plugin can access and which contributions are currently active.</p>

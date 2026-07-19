@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -89,5 +89,42 @@ describe('GMD-003/S1 R4 atomic namespaced state', () => {
     const backend = new FilesystemPluginStateBackend(root)
     await expect(backend.transaction('system-status', { secret: true })).rejects.toThrow('symbolic links')
     await expect(readFile(join(outside, 'system-status', 'state.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('denies a namespace parent swapped immediately before atomic commit', async () => {
+    const root = await workspaceRoot()
+    const outside = await mkdtemp(join(tmpdir(), 'graphitemd-plugin-escape-'))
+    roots.push(outside)
+    const pluginDirectory = join(root, '.graphite', 'plugins', 'system-status')
+    const retained = join(root, '.graphite', 'plugins', 'system-status-retained')
+    let swap = true
+    const backend = new FilesystemPluginStateBackend(root, {
+      beforeCommit: async () => {
+        if (!swap) return
+        swap = false
+        await rename(pluginDirectory, retained)
+        await symlink(outside, pluginDirectory)
+      },
+    })
+
+    await expect(backend.transaction('system-status', { secret: true })).rejects.toThrow()
+    await expect(readFile(join(outside, 'state.json'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('denies a namespace parent swapped before temporary-file creation', async () => {
+    const root = await workspaceRoot()
+    const outside = await mkdtemp(join(tmpdir(), 'graphitemd-plugin-escape-'))
+    roots.push(outside)
+    const pluginDirectory = join(root, '.graphite', 'plugins', 'system-status')
+    const retained = join(root, '.graphite', 'plugins', 'system-status-retained')
+    const backend = new FilesystemPluginStateBackend(root, {
+      beforeCreate: async () => {
+        await rename(pluginDirectory, retained)
+        await symlink(outside, pluginDirectory)
+      },
+    })
+
+    await expect(backend.transaction('system-status', { secret: true })).rejects.toThrow()
+    await expect(readFile(join(outside, 'state.json'))).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })

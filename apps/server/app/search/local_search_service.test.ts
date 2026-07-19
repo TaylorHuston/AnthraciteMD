@@ -82,7 +82,7 @@ describe('GMD-002/S3 local search', () => {
     roots.push(outside)
     await writeFile(join(root, 'Visible.md'), '# Visible\nneedle\n')
     await symlink(outside, join(root, '.graphite'))
-    await authority.openConfigured()
+    await expect(authority.openConfigured()).rejects.toThrow('unavailable')
     await expect(service.search('needle')).rejects.toThrow('unavailable')
     await expect(readFile(join(outside, 'cache', 'search.sqlite'))).rejects.toMatchObject({ code: 'ENOENT' })
   })

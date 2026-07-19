@@ -67,13 +67,14 @@ class TableRowWidget extends WidgetType {
     const row = document.createElement('span')
     const delimiter = /^\s*\|?\s*:?-{3,}:?/.test(this.source)
     row.className = `cm-readable-table-row${delimiter ? ' cm-readable-table-delimiter' : ''}`
-    row.setAttribute('role', 'row')
+    row.setAttribute('role', 'img')
+    row.setAttribute('aria-roledescription', 'Markdown table row')
     row.setAttribute('aria-label', this.source)
     if (delimiter) return row
     for (const value of this.source.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|')) {
       const cell = document.createElement('span')
       cell.className = 'cm-readable-table-cell'
-      cell.setAttribute('role', 'cell')
+      cell.setAttribute('aria-hidden', 'true')
       cell.textContent = value.trim()
       row.append(cell)
     }

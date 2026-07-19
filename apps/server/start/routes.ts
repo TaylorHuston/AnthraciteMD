@@ -41,26 +41,36 @@ router.get('/api/v1/health', () => serviceDescriptor)
 
 router.post('/api/v1/auth/login', async ({ auth, request, response }) => {
   const source = request.ip()
-  if (!loginAttempts.allows(source)) {
+  const attempt = loginAttempts.acquire(source)
+  if (!attempt) {
     return response.tooManyRequests({ error: { code: 'invalid_credentials', message: 'Invalid credentials.' } })
   }
   const account = request.input('account')
   const password = request.input('password')
   const validAccount = account === 'owner'
-  const validPassword = acceptsPasswordInput(password) && (await ownerSetup.verifyPassword(password))
+  const owner = validAccount ? await Owner.find(1) : null
+  let authenticated: boolean
+  try {
+    authenticated = acceptsPasswordInput(password) && await ownerSetup.authenticate(
+      password,
+      async () => {
+        if (!owner) return false
+        await auth.use('web').login(owner)
+        return true
+      },
+      async () => auth.use('web').logout(),
+    )
+  } catch (error) {
+    attempt.cancelled()
+    throw error
+  }
 
-  if (!validAccount || !validPassword) {
-    loginAttempts.failed(source)
+  if (!authenticated) {
+    attempt.failed()
     return response.unauthorized({ error: { code: 'invalid_credentials', message: 'Invalid credentials.' } })
   }
 
-  const owner = await Owner.find(1)
-  if (!owner) {
-    return response.unauthorized({ error: { code: 'invalid_credentials', message: 'Invalid credentials.' } })
-  }
-
-  await auth.use('web').login(owner)
-  loginAttempts.succeeded(source)
+  attempt.succeeded()
   return { owner: { id: 'owner' } }
 })
 

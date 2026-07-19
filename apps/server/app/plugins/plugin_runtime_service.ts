@@ -1,7 +1,7 @@
 import { constants } from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { lstat, mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 
 import {
   PluginCapabilityDenied,
@@ -21,8 +21,41 @@ type EnablementDocument = Readonly<{
 const DEFAULT_ENABLEMENT: EnablementDocument = { schemaVersion: 1, enabled: {} }
 const PLUGIN_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-async function atomicJsonWrite(path: string, value: unknown): Promise<void> {
+export interface AtomicPluginWriteOptions {
+  /** Test seam immediately before the temporary file is created. */
+  readonly beforeCreate?: () => Promise<void>
+  /** Test seam at the last point where an attacker can swap a validated ancestor before commit. */
+  readonly beforeCommit?: () => Promise<void>
+}
+
+type DirectoryIdentity = Readonly<{ canonicalPath: string; device: bigint; inode: bigint }>
+
+async function directoryIdentity(path: string, workspaceRoot: string): Promise<DirectoryIdentity> {
+  const metadata = await lstat(path, { bigint: true })
+  if (!metadata.isDirectory()) throw new Error('Plugin storage parent is unavailable.')
+  const canonicalPath = await realpath(path)
+  const expectedCanonicalPath = join(await realpath(workspaceRoot), relative(workspaceRoot, path))
+  if (canonicalPath !== expectedCanonicalPath) throw new Error('Plugin storage cannot escape the workspace.')
+  return { canonicalPath, device: metadata.dev, inode: metadata.ino }
+}
+
+function sameDirectory(left: DirectoryIdentity, right: DirectoryIdentity): boolean {
+  return left.canonicalPath === right.canonicalPath && left.device === right.device && left.inode === right.inode
+}
+
+async function atomicJsonWrite(
+  workspaceRoot: string,
+  path: string,
+  value: unknown,
+  options: AtomicPluginWriteOptions = {},
+): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
+  const parent = await directoryIdentity(dirname(path), workspaceRoot)
+  await options.beforeCreate?.()
+  const parentBeforeCreate = await directoryIdentity(dirname(path), workspaceRoot)
+  if (!sameDirectory(parent, parentBeforeCreate)) {
+    throw new Error('Plugin storage parent changed before creation.')
+  }
   const temporary = `${path}.${randomUUID()}.tmp`
   let created = false
   try {
@@ -37,6 +70,14 @@ async function atomicJsonWrite(path: string, value: unknown): Promise<void> {
       await handle.sync()
     } finally {
       await handle.close()
+    }
+    await options.beforeCommit?.()
+    const currentParent = await directoryIdentity(dirname(path), workspaceRoot)
+    if (!sameDirectory(parent, currentParent)) {
+      // The temporary belongs to the retained directory identity. Avoid resolving
+      // its former pathname through an attacker-controlled replacement directory.
+      created = false
+      throw new Error('Plugin storage parent changed before commit.')
     }
     await rename(temporary, path)
     created = false
@@ -77,7 +118,7 @@ export class PluginEnablementStore {
   readonly #path: string
   #pending: Promise<unknown> = Promise.resolve()
 
-  constructor(workspaceRoot: string) {
+  constructor(private readonly workspaceRoot: string, private readonly options: AtomicPluginWriteOptions = {}) {
     this.#path = join(workspaceRoot, '.graphite', 'plugins.json')
   }
 
@@ -102,7 +143,7 @@ export class PluginEnablementStore {
     const operation = this.#pending.then(async () => {
       const current = await this.read()
       const replacement = { schemaVersion: 1 as const, enabled: { ...current.enabled, [id]: enabled } }
-      await atomicJsonWrite(this.#path, replacement)
+      await atomicJsonWrite(this.workspaceRoot, this.#path, replacement, this.options)
       return replacement
     })
     this.#pending = operation.catch(() => undefined)
@@ -112,7 +153,10 @@ export class PluginEnablementStore {
 
 export class FilesystemPluginStateBackend implements PluginStateBackend {
   readonly #pending = new Map<string, Promise<unknown>>()
-  constructor(private readonly workspaceRoot: string) {}
+  constructor(
+    private readonly workspaceRoot: string,
+    private readonly options: AtomicPluginWriteOptions = {},
+  ) {}
 
   #statePath(pluginId: string): string {
     if (!PLUGIN_ID.test(pluginId)) throw new Error('Invalid plugin identity.')
@@ -128,7 +172,7 @@ export class FilesystemPluginStateBackend implements PluginStateBackend {
   async transaction(pluginId: string, value: unknown): Promise<void> {
     await this.#assertSafe(pluginId)
     const previous = this.#pending.get(pluginId) ?? Promise.resolve()
-    const operation = previous.then(() => atomicJsonWrite(this.#statePath(pluginId), value))
+    const operation = previous.then(() => atomicJsonWrite(this.workspaceRoot, this.#statePath(pluginId), value, this.options))
     this.#pending.set(pluginId, operation.catch(() => undefined))
     await operation
   }

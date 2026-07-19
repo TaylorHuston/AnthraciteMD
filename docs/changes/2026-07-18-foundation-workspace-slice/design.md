@@ -244,15 +244,18 @@ The host points GraphiteMD at one workspace through explicit operator configurat
     plugins.json           Stable plugin enablement and configuration
     plugins/
       <plugin-id>/         Versioned inspectable durable plugin state
+    operations/
+      renames/             Durable idempotent rename-recovery receipts
     cache/
       search.sqlite        Disposable catalog and FTS projection
-    .gitignore             Ignores cache and future high-churn state by default
+    .gitignore             Ignores cache and operation receipts by default
   <ordinary Markdown and nested repositories>
 ```
 
 - Use schema-versioned JSON and atomic same-directory replacement for stable GraphiteMD files.
 - Exclude `.graphite/` from ordinary note navigation and baseline note search.
-- Treat `cache/` as disposable. Deleting it must not remove notes, configuration, plugin state, or security authority.
+- Treat `cache/` as disposable. Rename receipts under `operations/` are ignored operational recovery state: retain them in full-filesystem backups when possible, but never treat them as note or configuration authority.
+- Back up ordinary workspace content, `workspace.json`, `plugins.json`, and durable plugin namespaces together. Back up machine-local security/session state separately with host secrets; the workspace alone cannot restore owner access.
 - Preserve nested Git repository boundaries; this Change does not run Git commands.
 - Auth state, secrets, locks, and transient buffers remain outside the workspace.
 
@@ -313,6 +316,8 @@ Use `/api/v1` routes and keep Adonis request/response types out of product packa
 | Login and password forms | application-specific | GraphiteMD | setup-required, idle, invalid, pending, session-expired, reset-complete | Follow existing form primitives and generic errors. |
 | Workbench shell | adopted reference | Dashboard minimal PKM composition with Coordinator primitives | desktop, mobile, empty, service unavailable, dirty note, drawer open | Remove spike product names and specialized panels. |
 | Plugin settings and System Status | application-specific | GraphiteMD plugin SDK | enabled, disabled, incompatible, denied, failed activation, recovery | Becomes reference for later bundled plugins. |
+
+Preview reconciliation: `idle`, `invalid`, `pending`, and `session-expired` are browser login previews; `setup-required` and `reset-complete` are host-command states proved through command/HTTP evidence rather than browser-rendered forms. Plugin inventory previews cover enabled, disabled, incompatible, failed-activation, and recoverable workbench states. Denied capability is operation-level headless evidence, not an inventory lifecycle screen; failed activation is the user-visible recovery preview for this bundled-plugin slice.
 
 ### Accessibility And Interaction
 
