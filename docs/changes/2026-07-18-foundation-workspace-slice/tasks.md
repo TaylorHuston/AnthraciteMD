@@ -5,8 +5,8 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: The headless `GMD-003/S1` SDK/host/conformance slice was committed in `ba074f7`; request protection is at `7e0d5a5`.
-- Next action: Implement `GMD-001/S2` password maintenance/recovery and `GMD-002/S1 R4` responsive browse composition as non-overlapping TDD slices.
+- Last completed action: `GMD-002/S1 R4` responsive browse composition passes its web gates and scoped SDD validation; `GMD-001/S2` service/HTTP/command tests are green pending Epic reconciliation.
+- Next action: Commit the responsive shell and access-maintenance slices, then add authenticated note-read/browser history and begin the editor path.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
 - Expected dirty files: `packages/workspace/`, `apps/server/`, `packages/contracts/`, `docs/epics/gmd-002-markdown-workbench/epic.md`, and this ledger for the current Requirement slice.
 - Known blockers: None. Spike repositories are read-only reference sources.
@@ -55,7 +55,7 @@ status: in_progress
   - [x] R1 one host-configured service-owned workspace and safe reconnect.
   - [x] R2 nested Markdown inventory, `.graphite`/ignore/unsafe exclusions, and empty state.
   - [ ] R3 exact source/revision reads with guarded opaque-resource history. (confined package read/revision/YAML behavior complete; authenticated HTTP and browser history remain.)
-  - [ ] R4 desktop and mobile-browser workbench composition.
+  - [x] R4 desktop and mobile-browser workbench composition. (automated structure/interaction proof complete; manual viewport confirmation pending.)
 - [ ] 4.5 Implement `GMD-002/S2` Edit And Rename A Note Safely through BDD/TDD.
   - [ ] R1 transplant the newer source-preserving editor and Dashboard-only general-note regressions.
   - [ ] R2 transplant single-flight autosave, version conflicts, late-response isolation, and draft guards.
@@ -118,6 +118,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | `GMD-002/S1 R3` exact note read package slice | Delegated TDD; Dashboard YAML cases plus Coordinator locator/no-follow patterns | `packages/workspace`; GMD-002 Epic | Exact bounded UTF-8 source, revision, YAML state, stale/unknown locator and symlink/root replacement denial implemented; HTTP/browser history remains | `323a053` |
 | 2026-07-18 | `GMD-001/S1 R3` browser request protection | Delegated TDD; official Adonis Shield/CORS guidance | Shield/CORS config and middleware; real HTTP fixture; GMD-001 Epic | Missing/invalid XSRF fails before logout mutation; exact configured origin receives credentialed CORS while near-match untrusted origin receives none | `7e0d5a5` |
 | 2026-07-18 | `GMD-003/S1` headless plugin core | Delegated TDD; Dashboard enablement semantics plus Coordinator capability-host patterns | Plugin SDK/testkit, System Status plugin, GMD-003 Epic | Versioned manifest/host lifecycle, capability broker, namespaced state contract, and shared conformance implemented; inspectable filesystem persistence and service/web integration remain | `ba074f7` |
+| 2026-07-18 | `GMD-002/S1 R4` responsive browse shell and R2 presentation | Delegated TDD; component accessibility/composition guidance; Coordinator primitives and Dashboard PKM composition adapted | Web App/tree/drawers/state shell, responsive tokens/styles, GMD-002 Epic | Authenticated bootstrap, deterministic accessible tree, empty/session/error states, desktop regions, and narrow drawers implemented; editor/search/settings remain scoped placeholders | commit pending |
 
 ## Verification Ledger
 
@@ -135,6 +136,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | `pnpm build && pnpm test` | broad supporting regression gate | Generated output does not get rediscovered as duplicate tests; every workspace package remains green after a full build. | Passing after adding `apps/server/vitest.config.ts` |
 | 2026-07-18 | Server 9-test suite plus lint/typecheck/build and scoped SDD validation | deterministic integration evidence plus supporting gates | `GMD-001/S1/R3-S1..R3-S2`: missing/invalid/valid XSRF behavior and exact trusted versus near-match untrusted credentialed origins. | Passing |
 | 2026-07-18 | Plugin SDK 7 focused tests plus System Status conformance; plugin package lint/typecheck/build | focused automated evidence plus supporting gates | Headless portions of `GMD-003/S1/R1..R4`: manifest and dependency denial, lifecycle teardown, capability denial, state isolation contract, and production-SDK conformance. | Passing; filesystem/service/browser gaps remain explicit |
+| 2026-07-18 | Web 4-test suite plus lint/typecheck/build and scoped SDD validation | focused component evidence plus supporting gates | `GMD-002/S1/R2-S1`, `R2-S3`, `R4-S1`, `R4-S2`: accessible tree, empty reachability, responsive drawer semantics, focus/Escape, and expired-session state. | Passing; real viewport/touch/overflow confirmation pending user |
 
 ## Manual Feedback
 
