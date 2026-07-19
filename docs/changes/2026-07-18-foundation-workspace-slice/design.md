@@ -389,7 +389,7 @@ The selected approach preserves the clean product identity and accepted architec
   - Add auth setup/login/logout/change/reset/session-revocation, CSRF, origin, cookie, and security-state permission tests.
   - Add plugin manifest, enable/disable, transactional contribution, denied capability, state isolation, restart, partial failure, forbidden-import, and conformance tests.
 - Broad supporting gates: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:storybook`, and `pnpm test:e2e` from the new root.
-- Deterministic E2E: Start an isolated Adonis service and Vite client with temporary security/workspace roots; establish an owner, log in, browse, search, open, edit, conflict, rename, reload, disable/enable System Status, change password, and confirm session invalidation at desktop and mobile viewports.
+- Deterministic E2E: Build and start the compiled same-origin Adonis production artifact with temporary security/workspace roots; establish an owner, log in, browse, search, open, edit, conflict, rename, reload, disable/enable System Status, change password, and confirm session invalidation at desktop and mobile viewports.
 - Live-provider or external-service playtests: Not applicable; this Change uses no model or external provider.
 - Manual UI confirmation: Owner confirms login, desktop/mobile composition, tree/search usability, Source/Rendered fidelity, autosave/conflict/rename recovery, Settings, password change, and plugin enable/disable against a disposable or intentionally selected test workspace.
 - Debug/log inspection: Confirm structured logs omit secrets, note bodies, snippets, tokens, and absolute host paths; inspect failed-path and plugin-denial codes only as supporting evidence.
