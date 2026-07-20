@@ -6,10 +6,10 @@ status: in_progress
 ## Resume Here
 
 - Last completed action: implemented the `.graphitemd` workspace-vault cutover, guarded legacy migration, and default machine-local secret vault.
-- Next action: add the bundled Assistant/Context browser surface and deterministic route/E2E injection evidence.
+- Next action: replan the Assistant ownership boundary before adding the bundled Assistant/Context surface or deterministic route/E2E injection evidence.
 - Active branch/ref: `change/llm-assistant-integration` at storage checkpoint `35d3aa0`.
 - Expected dirty files: bundled Assistant plugin/conformance, Context browser components/tests, deterministic fake-runtime E2E, and this ledger.
-- Known blockers: none for deterministic implementation. A separate owner-completed Codex OAuth is still required for live-provider verification.
+- Known blockers: accepted design/ADR assigns Assistant prompt, retrieval, and tool policy to the bundled plugin, but current committed routes run Pi and retrieval directly in core services. A thin plugin would not satisfy that ownership rule; resolve this through `/sdd-change --replan` before more Assistant UI/plugin work. A separate owner-completed Codex OAuth is still required for live-provider verification.
 
 ## Task Checklist
 
@@ -148,6 +148,7 @@ status: in_progress
 |---|---|---|---|---|
 | YYYY-MM-DD | TBD | in-scope refinement / scope expansion / product drift / Epic ownership change / technical constraint / follow-up change | proposal.md / design.md / tasks.md | `/sdd-apply` TBD |
 | 2026-07-20 | Owner selected an atomic Obsidian-like workspace vault while keeping credentials out of the workspace. | scope expansion, explicitly accepted | Replanned `.graphite/` to `.graphitemd/` workspace migration, machine-local `~/.graphitemd/` state default, override safety guard, compatibility exclusions, and documentation/verification obligations in proposal/design/tasks and the Proposed ADR. Actual Epic and application code remain unchanged in this planning pass. | `/sdd-apply` 4.0 workspace-vault and machine-vault boundary |
+| 2026-07-20 | Plugin-boundary discovery found current core-owned Pi/retrieval orchestration conflicts with the accepted plugin-owned Assistant policy/retrieval decision. | planning discovery | No new UI/plugin implementation was retained. Decide whether to move policy into a capability-mediated plugin or revise the accepted decision with explicit rationale. | `/sdd-change --replan` then `/sdd-apply` |
 
 ## Design Updates
 
@@ -206,6 +207,7 @@ status: in_progress
 ## Blockers / Open Questions
 
 - No planning blockers.
+- Blocking architecture decision: the bundled Assistant must own policy/retrieval/tool selection as specified, or the proposed ADR/design must explicitly move that authority into the service. Current direct core orchestration cannot honestly satisfy both statements.
 - Live-provider completion requires owner OAuth during implementation verification.
 
 ## Closeout
