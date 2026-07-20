@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-18
 - Related Change: [Foundation Workspace Slice](../changes/2026-07-18-foundation-workspace-slice/proposal.md) (architectural constraint; agent behavior is deferred)
-- Related Epics / Stories: None implemented yet; the foundation Change establishes capability boundaries but explicitly defers Assistant proposals, grants, and autonomous runs.
+- Related Epics / Stories: [GMD-004/S2 Ask The Workspace Through Codex](../epics/gmd-004-llm-assistant/epic.md#story-s2-ask-the-workspace-through-codex) owns the planned read-only foundation; proposals, grants, and autonomous runs remain deferred.
 - Supersedes: None in this repository.
 - Superseded by:
 
