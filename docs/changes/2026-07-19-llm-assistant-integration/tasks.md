@@ -7,7 +7,7 @@ status: in_progress
 
 - Last completed action: completed the enabling contracts/SDK phase with focused evidence. It establishes safe normalized browser/plugin contracts and a declared-capability facade, but no Story behavior is implemented yet.
 - Next action: implement `GMD-004/S1/R1-R2` by adding the machine-local Pi/Codex credential boundary, normalized OAuth manager, injected deterministic runtime seam, and authenticated HTTP adapter.
-- Active branch/ref: `change/llm-assistant-integration` at `c5e461c` before the enabling-phase commit.
+- Active branch/ref: `change/llm-assistant-integration` at enabling-phase commit `452a781`.
 - Expected dirty files: `packages/contracts/src/index.{ts,test.ts}`, `packages/plugin-sdk/{package.json,src/index.{ts,test.ts}}`, `pnpm-lock.yaml`, and this ledger for the enabling-phase commit.
 - Known blockers: none for promotion or deterministic implementation. Live Codex verification later requires the owner to complete OAuth.
 
@@ -100,7 +100,7 @@ status: in_progress
 
 | Date | Slice | Agent / Guidance | Files / Areas | Result | Commit / Ref |
 |---|---|---|---|---|---|
-| 2026-07-19 | Enabling contracts and capability facade | main + bounded discovery worker; Context7 Pi API check and Coordinator-local `0.80.6` reference | `packages/contracts`, `packages/plugin-sdk` | Failing-first contract coverage followed by runtime-validated sanitized provider/OAuth/question/turn/source schemas and a declared service-owned Assistant capability facade. No Pi, OAuth, routes, manifest, retrieval, persistence, or UI behavior yet. | commit pending |
+| 2026-07-19 | Enabling contracts and capability facade | main + bounded discovery worker; Context7 Pi API check and Coordinator-local `0.80.6` reference | `packages/contracts`, `packages/plugin-sdk` | Failing-first contract coverage followed by runtime-validated sanitized provider/OAuth/question/turn/source schemas and a declared service-owned Assistant capability facade. No Pi, OAuth, routes, manifest, retrieval, persistence, or UI behavior yet. | `452a781` |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
