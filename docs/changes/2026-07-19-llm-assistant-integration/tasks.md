@@ -5,10 +5,10 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: promoted the validated private Change into `docs/changes/`, created the policy-required implementation branch, and transitioned the Change from `planned` to `in_progress`.
-- Next action: complete Discovery for Task 4.1, then add the runtime-neutral Assistant contracts and injected service boundaries through focused failing-first tests.
-- Active branch/ref: `change/llm-assistant-integration` at promotion checkpoint `3e6d89b` (from `develop` at `4b2873ff074518e6cb5defd1434d3c0a848886f1`).
-- Expected dirty files: promoted Change artifacts, `docs/epics/gmd-004-llm-assistant/epic.md`, and the related proposed ADR/index/link files; these are the accepted promotion set and will be committed as the promotion checkpoint before application work.
+- Last completed action: completed the enabling contracts/SDK phase with focused evidence. It establishes safe normalized browser/plugin contracts and a declared-capability facade, but no Story behavior is implemented yet.
+- Next action: implement `GMD-004/S1/R1-R2` by adding the machine-local Pi/Codex credential boundary, normalized OAuth manager, injected deterministic runtime seam, and authenticated HTTP adapter.
+- Active branch/ref: `change/llm-assistant-integration` at `c5e461c` before the enabling-phase commit.
+- Expected dirty files: `packages/contracts/src/index.{ts,test.ts}`, `packages/plugin-sdk/{package.json,src/index.{ts,test.ts}}`, `pnpm-lock.yaml`, and this ledger for the enabling-phase commit.
 - Known blockers: none for promotion or deterministic implementation. Live Codex verification later requires the owner to complete OAuth.
 
 ## Task Checklist
@@ -40,7 +40,7 @@ status: in_progress
 ### 4. Implementation
 
 - [ ] 4.1 Establish the runtime-neutral Assistant contracts and service boundaries through BDD/TDD.
-  - [ ] Define provider status, normalized OAuth flow/input, conversation, turn, source, and error schemas used by service, plugin, and browser adapters.
+  - [x] Define provider status, normalized OAuth flow/input, conversation, turn, source, and error schemas used by service, plugin, and browser adapters.
   - [ ] Add injected model/auth/runtime and conversation-store interfaces; keep AdonisJS, React, Pi, paths, and credentials out of domain contracts.
   - [ ] Add the Pi `0.80.x` dependency at the reviewed current version and lock the exact resolution.
 - [ ] 4.2 Implement `GMD-004/S1/R1 GraphiteMD-Owned Codex OAuth`.
@@ -67,7 +67,7 @@ status: in_progress
   - [ ] `R4-S3`: add accessible question busy/error announcements, duplicate-action prevention, and owner-session expiry handling.
 - [ ] 4.8 Exercise the production bundled-plugin boundary.
   - [ ] Add the Assistant manifest/contributions and only the narrow model/workspace capabilities needed by `S1-S2`.
-  - [ ] Extend SDK/host registration and conformance without giving the Assistant raw credential, filesystem, process, shell, or unrestricted network access.
+  - [x] Extend the SDK/host capability facade without giving the Assistant raw credential, filesystem, process, shell, or unrestricted network access.
   - [ ] Update the bundled-source/dependency boundary with explicit reviewed capability imports rather than a blanket plugin exception.
 - [ ] 4.9 Reconcile implementation truth and user documentation.
   - [ ] Replace `GMD-004/S1-S2` implementation gaps with requirement-mapped concrete locations and stable anchors.
@@ -100,7 +100,7 @@ status: in_progress
 
 | Date | Slice | Agent / Guidance | Files / Areas | Result | Commit / Ref |
 |---|---|---|---|---|---|
-| YYYY-MM-DD | Enabling contracts/runtime boundaries | main | contracts, runtime-neutral Assistant services, Pi adapter | pending | pending |
+| 2026-07-19 | Enabling contracts and capability facade | main + bounded discovery worker; Context7 Pi API check and Coordinator-local `0.80.6` reference | `packages/contracts`, `packages/plugin-sdk` | Failing-first contract coverage followed by runtime-validated sanitized provider/OAuth/question/turn/source schemas and a declared service-owned Assistant capability facade. No Pi, OAuth, routes, manifest, retrieval, persistence, or UI behavior yet. | commit pending |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
@@ -112,6 +112,7 @@ status: in_progress
 | Date | Check | Evidence Type | What It Proves | Result |
 |---|---|---|---|---|
 | YYYY-MM-DD | Assistant focused suites | focused automated test | GMD-004/S1-S2 deterministic behavior and risky boundaries | pending |
+| 2026-07-19 | `pnpm --filter @graphitemd/contracts test`; `pnpm --filter @graphitemd/plugin-sdk test`; package lints/typechecks; server bundled import-boundary suite | focused automated test / supporting gate | Sanitized Assistant contracts reject token-bearing or malformed terminal payloads; SDK operations require declared capabilities and validate replies before plugins can consume them; the existing bundled import boundary remains green. | passing; enables later Story evidence but does not verify a GMD-004 Scenario alone |
 | YYYY-MM-DD | Production fake-provider browser journey | deterministic E2E | Connect, ask, brokered read, service-derived sources, persistence, disconnect, desktop/mobile continuity | pending |
 | YYYY-MM-DD | Rendered Context/Settings matrix | rendered UI verification | GMD-004/S2 R4 responsive states, interaction, accessibility, and visual containment | pending |
 | YYYY-MM-DD | Live Codex note-grounding playtest | live-provider playtest | Real OAuth/model can answer from a uniquely identifiable note with matching source provenance | pending owner authorization |

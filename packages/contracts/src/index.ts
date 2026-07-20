@@ -109,6 +109,127 @@ export const ErrorResponse = Type.Object({
 })
 export type ErrorResponse = Static<typeof ErrorResponse>
 
+export const AssistantFlowId = Type.String({ pattern: '^flow_[a-z0-9]+$' })
+export type AssistantFlowId = `flow_${string}`
+
+export const ConversationId = Type.String({ pattern: '^conv_[a-z0-9]+$' })
+export type ConversationId = `conv_${string}`
+
+export const TurnId = Type.String({ pattern: '^turn_[a-z0-9]+$' })
+export type TurnId = `turn_${string}`
+
+export const AssistantProviderStatus = Type.Object({
+  provider: Type.Literal('openai-codex'),
+  status: Type.Union([
+    Type.Literal('disconnected'),
+    Type.Literal('connecting'),
+    Type.Literal('connected'),
+    Type.Literal('unavailable'),
+    Type.Literal('failed'),
+  ]),
+  model: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+}, { additionalProperties: false })
+export type AssistantProviderStatus = Static<typeof AssistantProviderStatus>
+
+export const AssistantError = Type.Object({
+  code: Type.Union([
+    Type.Literal('provider_unavailable'),
+    Type.Literal('provider_failure'),
+    Type.Literal('flow_conflict'),
+    Type.Literal('invalid_input'),
+    Type.Literal('workspace_unavailable'),
+    Type.Literal('question_in_flight'),
+    Type.Literal('no_relevant_evidence'),
+    Type.Literal('cancelled'),
+  ]),
+  message: Type.String({ minLength: 1 }),
+  retryable: Type.Boolean(),
+}, { additionalProperties: false })
+export type AssistantError = Static<typeof AssistantError>
+
+export const AssistantOAuthInput = Type.Union([
+  Type.Object({
+    kind: Type.Literal('text'),
+    label: Type.String({ minLength: 1 }),
+    secret: Type.Boolean(),
+    required: Type.Boolean(),
+  }, { additionalProperties: false }),
+  Type.Object({
+    kind: Type.Literal('selection'),
+    label: Type.String({ minLength: 1 }),
+    options: Type.Array(Type.Object({ id: Type.String({ minLength: 1 }), label: Type.String({ minLength: 1 }) }, { additionalProperties: false }), { minItems: 1 }),
+    required: Type.Boolean(),
+  }, { additionalProperties: false }),
+])
+export type AssistantOAuthInput = Static<typeof AssistantOAuthInput>
+
+export const AssistantOAuthFlow = Type.Object({
+  flowId: AssistantFlowId,
+  provider: Type.Literal('openai-codex'),
+  status: Type.Union([
+    Type.Literal('awaiting_provider'),
+    Type.Literal('awaiting_input'),
+    Type.Literal('succeeded'),
+    Type.Literal('failed'),
+    Type.Literal('cancelled'),
+  ]),
+  createdAt: Type.String({ minLength: 1 }),
+  updatedAt: Type.String({ minLength: 1 }),
+  input: Type.Union([AssistantOAuthInput, Type.Null()]),
+  error: Type.Union([AssistantError, Type.Null()]),
+}, { additionalProperties: false })
+export type AssistantOAuthFlow = Static<typeof AssistantOAuthFlow>
+
+export const AssistantQuestion = Type.Object({
+  conversationId: Type.Optional(ConversationId),
+  question: Type.String({ minLength: 1 }),
+}, { additionalProperties: false })
+export type AssistantQuestion = Static<typeof AssistantQuestion>
+
+export const AssistantSource = Type.Object({
+  resourceId: ResourceId,
+  displayPath: Type.String({ minLength: 1 }),
+  revision: NoteRevision,
+  excerpt: Type.String(),
+  truncated: Type.Boolean(),
+}, { additionalProperties: false })
+export type AssistantSource = Static<typeof AssistantSource>
+
+const AssistantTurnBase = {
+  turnId: TurnId,
+  conversationId: ConversationId,
+  question: Type.String({ minLength: 1 }),
+  provider: Type.Literal('openai-codex'),
+  model: Type.String({ minLength: 1 }),
+  createdAt: Type.String({ minLength: 1 }),
+  sources: Type.Array(AssistantSource),
+}
+
+export const AssistantTurn = Type.Union([
+  Type.Object({
+    ...AssistantTurnBase,
+    status: Type.Literal('in_progress'),
+    completedAt: Type.Null(),
+    answer: Type.Null(),
+    error: Type.Null(),
+  }, { additionalProperties: false }),
+  Type.Object({
+    ...AssistantTurnBase,
+    status: Type.Literal('completed'),
+    completedAt: Type.String({ minLength: 1 }),
+    answer: Type.String(),
+    error: Type.Null(),
+  }, { additionalProperties: false }),
+  Type.Object({
+    ...AssistantTurnBase,
+    status: Type.Union([Type.Literal('failed'), Type.Literal('cancelled')]),
+    completedAt: Type.String({ minLength: 1 }),
+    answer: Type.Null(),
+    error: AssistantError,
+  }, { additionalProperties: false }),
+])
+export type AssistantTurn = Static<typeof AssistantTurn>
+
 export function matchesContract<Schema extends RuntimeSchema>(schema: Schema, value: unknown): value is SchemaValue<Schema> {
   return Check(schema, value)
 }

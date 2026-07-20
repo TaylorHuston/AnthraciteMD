@@ -1,3 +1,19 @@
+import {
+  AssistantOAuthFlow,
+  AssistantProviderStatus,
+  AssistantQuestion,
+  AssistantTurn,
+  MarkdownNoteResponse,
+  SearchResponse,
+  matchesContract,
+  type AssistantOAuthFlow as AssistantOAuthFlowValue,
+  type AssistantProviderStatus as AssistantProviderStatusValue,
+  type AssistantQuestion as AssistantQuestionValue,
+  type AssistantTurn as AssistantTurnValue,
+  type MarkdownNoteResponse as MarkdownNoteResponseValue,
+  type SearchResponse as SearchResponseValue,
+} from '@graphitemd/contracts'
+
 export const PLUGIN_MANIFEST_SCHEMA_VERSION = 1 as const
 
 export type PluginPermission = `${string}:${string}`
@@ -108,6 +124,43 @@ export function createCapabilityBroker(manifest: PluginManifest, provider: Capab
   })
 }
 
+export type AssistantCapabilities = Readonly<{
+  providerStatus(): Promise<AssistantProviderStatusValue>
+  startOAuth(): Promise<AssistantOAuthFlowValue>
+  ask(question: AssistantQuestionValue): Promise<AssistantTurnValue>
+  search(input: Readonly<{ query: string; limit: number }>): Promise<SearchResponseValue>
+  read(resource: OpaqueResourceId): Promise<MarkdownNoteResponseValue>
+}>
+
+/**
+ * A typed SDK façade over the only service-owned operations an Assistant
+ * plugin may request. The host still enforces manifest declarations and owns
+ * every provider, workspace, credential, and runtime implementation.
+ */
+export function createAssistantCapabilities(broker: ReturnType<typeof createCapabilityBroker>): AssistantCapabilities {
+  const assistant = resourceId('assistant')
+  const workspace = resourceId('workspace')
+  const response = async <Value>(schema: Parameters<typeof matchesContract>[0], operation: CapabilityOperation): Promise<Value> => {
+    const value = await broker.perform(operation)
+    if (!matchesContract(schema, value)) {
+      throw new PluginCapabilityDenied('unavailable', 'Assistant capability returned an invalid response.')
+    }
+    return value as Value
+  }
+  return Object.freeze({
+    providerStatus: () => response<AssistantProviderStatusValue>(AssistantProviderStatus, { permission: 'assistant:provider-status', resource: assistant }),
+    startOAuth: () => response<AssistantOAuthFlowValue>(AssistantOAuthFlow, { permission: 'assistant:oauth-flow', resource: assistant, input: { action: 'start' } }),
+    ask: (question) => {
+      if (!matchesContract(AssistantQuestion, question)) {
+        return Promise.reject(new PluginCapabilityDenied('unavailable', 'Assistant question is invalid.'))
+      }
+      return response<AssistantTurnValue>(AssistantTurn, { permission: 'assistant:question', resource: assistant, input: question })
+    },
+    search: (input) => response<SearchResponseValue>(SearchResponse, { permission: 'workspace:search', resource: workspace, input }),
+    read: (resource) => response<MarkdownNoteResponseValue>(MarkdownNoteResponse, { permission: 'workspace:read', resource }),
+  })
+}
+
 export interface PluginStateBackend {
   read(pluginId: string): Promise<unknown | undefined>
   transaction(pluginId: string, value: unknown): Promise<void>
@@ -131,6 +184,7 @@ export function createPluginStateAdapter(pluginId: string, schemaVersion: number
 
 export type PluginContext = Readonly<{
   capabilities: ReturnType<typeof createCapabilityBroker>
+  assistant: AssistantCapabilities
   state: ReturnType<typeof createPluginStateAdapter>
 }>
 export interface GraphitePlugin {
@@ -218,8 +272,10 @@ export class PluginHost {
       return
     }
     try {
+      const capabilities = createCapabilityBroker(plugin.manifest, this.options.provider)
       const dispose = await plugin.activate({
-        capabilities: createCapabilityBroker(plugin.manifest, this.options.provider),
+        capabilities,
+        assistant: createAssistantCapabilities(capabilities),
         state: createPluginStateAdapter(id, plugin.manifest.state.schemaVersion, this.options.stateBackend),
       })
       if (dispose) this.#disposers.set(id, dispose)
