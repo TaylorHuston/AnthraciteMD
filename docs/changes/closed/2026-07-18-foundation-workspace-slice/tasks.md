@@ -234,11 +234,11 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
 - ADR status: Four Accepted ADRs remain linked; runtime contracts and the accepted trusted-first-party bundled-plugin boundary are implemented, while untrusted community isolation remains deferred.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
-- `sdd-review` verdict: `ready` against implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`; the user accepted remaining manual gaps when authorizing merge-and-close.
+- `sdd-review` verdict: `ready` against implementation commit `08490ea4d7c07ac3839cc9c36bfaff1cb90639a5` for the open `develop` to `main` release PR; the user previously accepted the remaining manual gaps.
 - Review record: `docs/changes/closed/2026-07-18-foundation-workspace-slice/review.md`.
 - `review.md` findings resolved: Yes in the immutable implementation commit; accepted workspace identity and plugin lifecycle remain fail-closed, and the current shell passes direct rendered inspection.
 - Planning updates resolved: Yes for the accepted Change scope; accepted manual gaps and deferred product scope remain explicit.
 - Manual UI confirmation status: accepted gap; deterministic desktop/narrow browser evidence passes, while terminal, real-device, and screen-reader checks remain unperformed.
-- PR / merge state: Merged locally into `develop` as `48392e8f00cc4ad044000e8412644dc9f1dcc1ec` from source closeout `9d6b0b0ae9aa1dfac988f68de63247b852d8166e`. No remote, PR, push, deployment, or branch deletion.
+- PR / merge state: The foundation was merged locally into `develop` as `48392e8f00cc4ad044000e8412644dc9f1dcc1ec`; release PR [#1](https://github.com/TaylorHuston/GraphiteMD/pull/1) is open from `develop` into `main`. Provider merge, deployment, and branch deletion have not been performed.
 - Deferred scope accepted: Recorded in proposal/design/Epics.
 - Change moved to `docs/changes/closed/`: Yes; closed through `sdd change close` under explicit user authorization.
