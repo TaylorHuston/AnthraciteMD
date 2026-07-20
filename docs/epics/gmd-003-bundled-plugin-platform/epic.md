@@ -3,8 +3,8 @@ schema: sdd-epic-v2
 id: GMD-003
 status: draft
 created: 2026-07-18
-modified: 2026-07-18
-last_verified:
+modified: 2026-07-19
+last_verified: 2026-07-19
 stories:
   - S1
 ---
@@ -49,17 +49,17 @@ The workspace owner will be able to inspect and control bundled plugins while Gr
 
 | Story | Implementation | Verification | Capability | Last Verified | Notes |
 |---|---|---|---|---|---|
-| S1 | not implemented | unverified | Inspect, control, and trust bundled plugins. |  | Foundation Change. |
+| S1 | implemented | partial | Inspect, control, and trust bundled plugins. | 2026-07-19 | The trusted first-party System Status scope is implemented through the SDK, broker, workspace-bound persistence, validated controls, cold-start recovery, and inventory-mediated contributions; malicious containment remains deferred. |
 
 ## Stories
 
 ### Story S1: Inspect Control And Trust Bundled Plugins
 
-Implementation: not implemented
-Verification: unverified
+Implementation: implemented
+Verification: partial
 Created: 2026-07-18
-Modified: 2026-07-18
-Last verified:
+Modified: 2026-07-19
+Last verified: 2026-07-19
 
 As a workspace owner, I want bundled plugins to be visible, controllable, and capability-limited, so that extensions can add value without becoming invisible unrestricted application code.
 
@@ -139,34 +139,58 @@ The system SHALL confine durable plugin state to its documented `.graphite/plugi
 
 | Requirement / Scenario | Location / Anchor | Kind | Responsibility |
 |---|---|---|---|
-| S1/R1 | Not implemented yet. | primary | Manifest validation, compatibility, and inventory. |
-| S1/R2 | Not implemented yet. | primary | Enablement lifecycle and inspectable configuration. |
-| S1/R3 | Not implemented yet. | primary | Capability broker and normalized denial. |
-| S1/R4 | Not implemented yet. | primary | Namespaced state, recovery, and conformance harness. |
+| S1/R1 | `packages/plugin-sdk/src/index.ts#validatePluginManifest` | primary | Runtime manifest validation, compatibility/dependency checks, fail-closed inventory, and contribution registration through `PluginHost.load`. |
+| S1/R2 | `packages/plugin-sdk/src/index.ts#PluginHost` | primary | Applies injected persisted enablement before activation and tears down registered contributions. |
+| S1/R3 | `packages/plugin-sdk/src/index.ts#createCapabilityBroker` | primary | Declared opaque operations and normalized fail-closed denial. |
+| S1/R4 | `packages/plugin-sdk/src/index.ts#createPluginStateAdapter` | primary | Plugin-bound versioned state contract, transactional backend boundary, and recovery status. |
+| S1/R4-S3 | `packages/plugin-testkit/src/index.ts#runPluginConformance` | primary | Shared headless conformance contract used for every bundled plugin. |
+| S1/R4-S3 | `plugins/system-status/src/index.ts#systemStatusPlugin` | support | Real bundled plugin using the production manifest, broker, state, and contribution contracts. |
+| S1/R1, S1/R2, S1/R3 | `apps/server/app/plugins/plugin_runtime_service.ts#PluginRuntimeService` | primary | Loads System Status through the production host, applies persisted enablement before activation, and supplies a current-workspace status capability without raw path exposure. |
+| S1/R2 | `apps/server/app/plugins/plugin_runtime_service.ts#PluginEnablementStore` | primary | Serializes enablement mutations, binds reads and atomic pre-create/precommit writes to the workspace authority's accepted identity, and persists inspectable configuration through exclusive no-follow temporary files plus durability sync. |
+| S1/R2 | `apps/server/start/routes.ts#pluginRuntime` | support | Exposes authenticated plugin inventory and control endpoints. |
+| S1/R1, S1/R2 | `apps/web/src/SettingsPanel.tsx#SettingsPanel` | presentation | Presents manifest identity, status, declared permissions, active contributions, and accessible enable/disable controls while returning rejected sessions to sign-in. |
+| S1/R1, S1/R2 | `apps/web/src/App.tsx#Workbench` | presentation | Mounts System Status only from its active declared production inventory view and removes it after disablement. |
+| S1/R1, S1/R2 | `packages/contracts/src/index.ts`; `apps/web/src/api.ts#requestJson` | support | Defines and validates the plugin inventory/control response boundary before plugin state or contributions enter the browser. |
+| S1/R4 | `apps/server/app/plugins/plugin_runtime_service.ts#FilesystemPluginStateBackend` | primary | Binds state reads/transactions/recovery to accepted workspace identity, serializes writes, retains and revalidates namespace identity before commit/recovery mutation, rejects redirected or malformed namespace parents, syncs durability, and recovers only complete interrupted state. |
+| S1/R3-S2, S1/R4-S3 | `apps/server/tests/plugins/bundled_import_boundary.test.ts#boundaryViolations` | support | Enforces the trusted first-party bundled-source and production-dependency boundary in the required test gate, including dynamic imports and direct process/network/module escape APIs; it is not malicious-code runtime containment. |
 
 #### Implementation Gaps
 
-- `S1/R1`: GraphiteMD plugin manifests and inventory do not exist yet.
-- `S1/R2`: Plugin enablement lifecycle does not exist yet.
-- `S1/R3`: GraphiteMD capability broker does not exist yet.
-- `S1/R4`: Namespaced state and conformance harness do not exist yet.
+None for the accepted bundled System Status scope. Broader resource providers belong to the deferred Assistant, Git, SDD, workflow, and community-plugin capabilities rather than this Story.
 
 #### Verified By
 
 | Requirement / Scenario | Evidence | Proves | Status |
 |---|---|---|---|
+| S1/R1-S1, S1/R1-S2 | `packages/plugin-sdk/src/index.test.ts` — `GMD-003/S1 R1 manifest validation`, caret-boundary, duplicate, failed-activation, dependency-order, and cycle cases | Valid manifests activate; caret lower/upper bounds are enforced, and malformed, incompatible, duplicate, unresolved, cyclic, version-mismatched, or failed dependencies fail closed without contributions. | passing 2026-07-19 |
+| S1/R2-S1, S1/R2-S2 | `packages/plugin-sdk/src/index.test.ts` — `GMD-003/S1 R2 plugin lifecycle` | Injected persisted disablement is applied before activation; dependencies activate first; disabling a dependency tears down active dependents first and removes all contributions. | passing (headless) 2026-07-19 |
+| S1/R3-S1, S1/R3-S2 | `packages/plugin-sdk/src/index.test.ts` — `GMD-003/S1 R3 capability mediation` | Declared opaque operations succeed; undeclared and raw-path operations receive normalized denials. | passing |
+| S1/R4-S1, S1/R4-S2 | `packages/plugin-sdk/src/index.test.ts` — `GMD-003/S1 R4 namespaced state` | Plugin-bound namespaces, versioned transactional backend calls, isolation, and recovery status contract. | passing (backend contract) |
+| S1/R4-S3 | `plugins/system-status/src/index.test.ts` — shared `runPluginConformance` assertion | The real System Status plugin passes production SDK lifecycle, denial, state, recovery, and headless contract checks. | passing |
+| S1/R1-S1, S1/R2-S1 | `apps/server/tests/http/authentication.test.ts` — `GMD-003/S1 production plugin host` | The authenticated production API lists System Status through its real manifest and disables it while removing contributions and writing inspectable configuration. | passing |
+| S1/R1-S1, S1/R2-S1 | `apps/web/src/SettingsPanel.test.tsx` — browser inventory and enablement cases | Browser-component evidence presents plugin identity, status, declared permissions, active contribution status, and enable/disable controls; a disabled response removes contributions and a rejected session returns to sign-in. | passing |
+| S1/R1-S1, S1/R2-S1 | `apps/web/src/App.test.tsx` — System Status contribution lifecycle | The workbench mounts the declared active view from production inventory and removes it after owner disablement without a bundled-code bypass. | passing |
+| S1/R2-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — `GMD-003/S1 R2 inspectable enablement` | Restarted production hosts apply persisted disablement before bundled activation and malformed configuration fails closed. | passing |
+| S1/R2-S1, S1/R2-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — `serializes concurrent enablement updates without losing either setting` | Concurrent in-process configuration mutations serialize and preserve both settings in the inspectable document. | passing 2026-07-18 |
+| S1/R2-S1, S1/R2-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — replacement workspace identity denial | Focused persistence evidence proves plugin enablement cannot create or update configuration after the configured root identity changes. | passing 2026-07-19 |
+| S1/R1-S1, S1/R2-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — cold start and unavailable-then-retry cases | A valid configured workspace starts the plugin runtime without route-order coupling; a failed unopened start may retry after the workspace appears, while an already accepted identity is never silently reopened after replacement. | passing 2026-07-19 |
+| S1/R3-S1, S1/R4-S1, S1/R4-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — production host and atomic state cases | System Status activates through the real workspace-aware provider; state commits in its namespace, rejects traversal/symlinks, recovers complete temporary writes, and reports invalid partial JSON as failed. | passing |
+| S1/R4-S1, S1/R4-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — `denies a namespace parent swapped immediately before atomic commit` | Deterministic filesystem evidence proves a swapped namespace ancestor is detected at the precommit boundary and no state is redirected outside the workspace. | passing with documented platform limit 2026-07-18 |
+| S1/R4-S1, S1/R4-S2 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` — recovery parent swap and malformed namespace cases | Recovery retains namespace identity before mutation, rejects a precommit replacement without redirected cleanup, and never reports a malformed namespace parent as clean. | passing 2026-07-19 |
+| S1/R3-S2 | `apps/server/tests/plugins/bundled_import_boundary.test.ts` — adversarial AST, all-source, and production dependency/export boundary cases | Every repository-owned bundled production source and dependency graph is limited to the capability SDK; dynamic import, import-equals, process/global/network/module/eval escape forms fail the required server gate. | passing 2026-07-19 |
+| S1/R1, S1/R2 | `tests/e2e/foundation.spec.ts` — desktop plugin lifecycle | Deterministic real-browser evidence proves the owner sees System Status, disables it with contribution removal and persisted state, then re-enables it without losing the workbench. | passing 2026-07-18 |
+| S1/R1, S1/R2 | `apps/web/src/App.stories.tsx` — plugin active and disabled preview states | Storybook browser evidence renders both contribution states and runs configured accessibility checks. | passing 2026-07-18 |
+| S1/R1, S1/R2 | `apps/web/src/App.stories.tsx` — plugin activation failure and incompatible preview states; `apps/web/src/SettingsPanel.test.tsx` — malformed inventory/control response cases | Browser evidence presents incompatible and failed activation states honestly, withholds invalid controls, and recovers from malformed successful plugin responses without trusting them. | passing 2026-07-19 |
 
 #### Verification Gaps
 
-- `S1/R1-S1`, `S1/R1-S2`: Not verified yet.
-- `S1/R2-S1`, `S1/R2-S2`: Not verified yet.
-- `S1/R3-S1`, `S1/R3-S2`: Not verified yet.
-- `S1/R4-S1`, `S1/R4-S2`, `S1/R4-S3`: Not verified yet.
+- `S1/R4-S2`: Deterministic namespace replacement and malformed-state fault injection passes; process-kill durability and the documented residual pathname race remain unverified platform limits.
 
 #### Story Notes
 
 - Seed manifest enablement from Dashboard's Core Plugin registry and capability mediation from Coordinator's runtime-neutral tool contracts and `RepositoryCapabilityHost`; neither source is copied as the final public SDK unchanged.
-- The System Status plugin is intentionally small but user-useful: it reports service, workspace, index, and plugin health through declared read-only capabilities and proves real service/web contributions.
+- The System Status plugin is intentionally small but user-useful: it reports service and workspace availability plus the current Markdown note count through a declared read-only capability and proves real service/web contributions.
+- Bundled service plugins are trusted repository-owned first-party code. The source/dependency gate prevents accidental direct privilege bypass, while broker checks remain runtime authority for supported operations. This foundation does not claim containment of deliberately malicious code; community plugins still require the deferred process/container boundary.
 
 ## Cross-Story Concerns
 

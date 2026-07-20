@@ -2,8 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-18
-- Related change: None yet; the foundation Change must apply this decision.
-- Related Epics / Stories: None yet.
+- Related Change: [Foundation Workspace Slice](../changes/2026-07-18-foundation-workspace-slice/proposal.md)
+- Related Epics / Stories: [GMD-003/S1 Bundled Plugin Platform](../epics/gmd-003-bundled-plugin-platform/epic.md#story-s1-inspect-control-and-trust-bundled-plugins)
 - Supersedes: None in this repository.
 - Superseded by:
 
@@ -29,6 +29,8 @@ Plugins SHALL:
 - behave predictably when capabilities are denied or unavailable.
 
 Bundled plugins SHALL pass the same conformance suite expected of the platform: manifest validation, enable/disable/restart/upgrade lifecycle, permission denial, restart and partial-operation recovery, state namespace isolation, and headless contract tests. Bundled status SHALL NOT grant raw SQLite, credential, filesystem, Git-process, shell, or unrestricted Node authority.
+
+For repository-owned bundled plugins, package exports, dependency constraints, AST-based forbidden-source checks, and review SHALL enforce that boundary against accidental bypass, while the capability broker remains authoritative for supported runtime operations. This trusted first-party model is not containment for deliberately malicious code.
 
 Arbitrary third-party installation, signing, distribution, compatibility guarantees, and untrusted-code isolation are deferred. Future community service plugins will require process or container isolation, and community UI will require sandboxed contribution boundaries.
 

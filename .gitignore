@@ -1,7 +1,15 @@
 .DS_Store
 node_modules/
+.adonisjs/
+build/
 dist/
+*.tsbuildinfo
+dist/
+apps/server/public/
 coverage/
+**/storybook-static/
+test-results/
+playwright-report/
 *.log
 .env
 .env.*
