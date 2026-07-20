@@ -5,11 +5,11 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: restored the active OAuth flow after Settings remount so an owner does not receive a conflicting second start.
-- Next action: replan the Assistant policy/retrieval ownership boundary before Context or bundled-plugin work.
+- Last completed action: replanned core-owned Assistant orchestration back to the accepted brokered bundled-Assistant boundary.
+- Next action: establish the policy-free service model-session capability and bundled Assistant manifest/contribution, then move the existing core prompt, retrieval strategy, tool selection, and Context presentation behind that boundary.
 - Active branch/ref: `change/llm-assistant-integration` at browser-authorization-link checkpoint `1f86f4d`.
-- Expected dirty files: bundled Assistant plugin/conformance, Context browser components/tests, deterministic fake-runtime E2E, and this ledger.
-- Known blockers: accepted design/ADR assigns Assistant prompt, retrieval, and tool policy to the bundled plugin, but current committed routes run Pi and retrieval directly in core services. A thin plugin would not satisfy that ownership rule; resolve this through `/sdd-change --replan` before Context or bundled-plugin work. The isolated Settings OAuth presentation refinement does not alter that ownership. A separate owner-completed Codex OAuth is still required for live-provider verification.
+- Expected dirty files: Assistant runtime/capability boundary, bundled Assistant manifest/conformance and Context contribution, core route dispatch, Context browser components/tests, deterministic fake-runtime E2E, and this ledger.
+- Known constraints: service code keeps credential storage, Pi lifecycle, owner authorization, run serialization, workspace resource enforcement, provenance, and conversation persistence. The bundled Assistant owns the prompt, retrieval strategy, allowed tool selection, and Context presentation through declared capabilities. A separate owner-completed Codex OAuth is still required for live-provider verification.
 
 ## Task Checklist
 
@@ -49,6 +49,7 @@ status: in_progress
   - [x] Define provider status, normalized OAuth flow/input, conversation, turn, source, and error schemas used by service, plugin, and browser adapters.
   - [x] Add injected model/auth/runtime and conversation-store interfaces; keep AdonisJS, React, Pi, paths, and credentials out of domain contracts.
   - [x] Add the Pi `0.80.x` dependency at the reviewed current version and lock the exact resolution.
+  - [ ] Replace the core-owned question-policy seam with a policy-free brokered model-session capability that validates the enabled Assistant's declared prompt/retrieval/tool policy without exposing Pi, credentials, paths, filesystem, process, shell, or unrestricted network access.
 - [ ] 4.2 Implement `GMD-004/S1/R1 GraphiteMD-Owned Codex OAuth`.
   - [ ] `R1-S1`: complete normalized Codex OAuth through Assistant Settings and persist owner-only machine-local credentials.
   - [x] `R1-S1a`: expose the transient provider browser-login URL in Settings alongside the manual-code fallback and clear it from terminal summaries.
@@ -61,7 +62,7 @@ status: in_progress
   - [ ] `R2-S2`: disconnect through Settings without changing workspace or canonical conversation content.
   - [ ] `R2-S3`: reject unauthenticated provider mutations without revealing interaction state.
 - [ ] 4.4 Implement `GMD-004/S2/R1 Read-Only Workspace-Grounded Answers`.
-  - [ ] `R1-S1`: create a restricted Pi session with only brokered search/read tools and return a grounded answer.
+  - [ ] `R1-S1`: let the bundled Assistant create a restricted declared policy that invokes a service-enforced Pi session with only brokered search/read tools and returns a grounded answer.
   - [ ] `R1-S2`: require an honest insufficient-evidence result when retrieval does not support an answer.
   - [ ] `R1-S3`: fail specifically for disconnected provider, missing model, unavailable workspace, empty prompt, and duplicate in-flight work.
 - [ ] 4.5 Implement `GMD-004/S2/R2 Confined Context And Source Provenance`.
@@ -72,11 +73,11 @@ status: in_progress
   - [x] `R3-S1`: atomically store versioned normalized turns beneath `.graphitemd/conversations/` without credentials or host paths.
   - [x] `R3-S2`: reconcile interrupted turns honestly and fail closed on malformed/partial state.
 - [ ] 4.7 Implement `GMD-004/S2/R4 Accessible Context Experience`.
-  - [ ] `R4-S1`: add desktop Context question/answer/source states without obscuring the document workbench.
+  - [ ] `R4-S1`: register the bundled Assistant Context contribution and render its desktop question/answer/source states without obscuring the document workbench.
   - [ ] `R4-S2`: reuse the narrow full-screen Context drawer with touch targets and focus containment/restoration.
   - [ ] `R4-S3`: add accessible question busy/error announcements, duplicate-action prevention, and owner-session expiry handling.
 - [ ] 4.8 Exercise the production bundled-plugin boundary.
-  - [ ] Add the Assistant manifest/contributions and only the narrow model/workspace capabilities needed by `S1-S2`.
+  - [ ] Add the Assistant manifest/contributions and only the narrow model-session/workspace capabilities needed by `S1-S2`; prove the plugin, not core routes, owns prompt, retrieval strategy, tool selection, and Context presentation.
   - [x] Extend the SDK/host capability facade without giving the Assistant raw credential, filesystem, process, shell, or unrestricted network access.
   - [ ] Update the bundled-source/dependency boundary with explicit reviewed capability imports rather than a blanket plugin exception.
 - [ ] 4.9 Reconcile implementation truth and user documentation.
@@ -165,7 +166,7 @@ status: in_progress
 |---|---|---|---|---|
 | YYYY-MM-DD | TBD | in-scope refinement / scope expansion / product drift / Epic ownership change / technical constraint / follow-up change | proposal.md / design.md / tasks.md | `/sdd-apply` TBD |
 | 2026-07-20 | Owner selected an atomic Obsidian-like workspace vault while keeping credentials out of the workspace. | scope expansion, explicitly accepted | Replanned `.graphite/` to `.graphitemd/` workspace migration, machine-local `~/.graphitemd/` state default, override safety guard, compatibility exclusions, and documentation/verification obligations in proposal/design/tasks and the Proposed ADR. Actual Epic and application code remain unchanged in this planning pass. | `/sdd-apply` 4.0 workspace-vault and machine-vault boundary |
-| 2026-07-20 | Plugin-boundary discovery found current core-owned Pi/retrieval orchestration conflicts with the accepted plugin-owned Assistant policy/retrieval decision. | planning discovery | No new UI/plugin implementation was retained. Decide whether to move policy into a capability-mediated plugin or revise the accepted decision with explicit rationale. | `/sdd-change --replan` then `/sdd-apply` |
+| 2026-07-20 | Plugin-boundary discovery found current core-owned Pi/retrieval orchestration conflicts with the accepted plugin-owned Assistant policy/retrieval decision. | technical constraint / Epic ownership reconciliation | Reconfirmed the accepted brokered bundled-Assistant approach: the service becomes a policy-free model/session, enforcement, provenance, and persistence host; the bundled Assistant owns prompt, retrieval strategy, declared tool selection, and Context presentation. Updated proposal/design/tasks; the Proposed Pi ADR remains aligned and needs no decision change. No application or Epic files changed in this replan. | `/sdd-apply` 4.1 policy-free model-session capability, then 4.8 Assistant manifest/contribution and 4.7 Context UI |
 
 ## Design Updates
 
@@ -192,6 +193,7 @@ status: in_progress
 | OAuth remount recovery | Browser reacquires the sole active normalized flow before rendering another connect action; terminal flows clear it. | OAuth manager and Settings component focused tests passing |
 | OAuth provider option shape | Pi selection prompts use opaque `id` values; GraphiteMD maps the browser-visible choice back to that ID without exposing provider internals. | OAuth manager provider-shape regression test passing |
 | Browser authorization handoff | Pi’s active browser authorization URL is shown only as a safe `noopener` new-tab link and is cleared from retained terminal flow summaries. | OAuth manager and Settings component browser-link tests passing |
+| Policy ownership and plugin bypass | The service validates only a declared plugin policy and brokered tool set; no core route hard-codes an Assistant prompt, retrieval sequence, tool selection, or Context presentation. | pending focused host/plugin and import-boundary evidence |
 
 ## Verification Environment
 
@@ -199,6 +201,7 @@ status: in_progress
 |---|---|---|
 | Temporary filesystem workspace | Authority, boundary, persistence, and recovery tests. | available; retrieval and conversation suites passing |
 | Deterministic injected Pi runtime | Production-path question, provenance, and conversation E2E. | pending implementation |
+| Bundled Assistant host fixture | Manifest/contribution registration and capability boundary tests without Pi or raw workspace authority in the plugin. | pending implementation |
 | Owner Codex subscription | Live OAuth/model grounding playtest. | pending owner interaction after deterministic path |
 
 ## Manual UI Confirmation
@@ -227,13 +230,12 @@ status: in_progress
 
 ## Blockers / Open Questions
 
-- No planning blockers.
-- Blocking architecture decision: the bundled Assistant must own policy/retrieval/tool selection as specified, or the proposed ADR/design must explicitly move that authority into the service. Current direct core orchestration cannot honestly satisfy both statements.
+- No planning blockers. The replan retains the accepted brokered bundled-Assistant ownership and classifies the direct core orchestration as implementation drift to remove during Apply.
 - Live-provider completion requires owner OAuth during implementation verification.
 
 ## Closeout
 
-- Change status: in progress; storage boundary is implemented and further Assistant/browser work remains.
+- Change status: planned; storage boundary is implemented and Apply resumes from the policy-free service/bundled-Assistant seam before further Context work.
 - Epic files updated: `GMD-004` maps current partial provider, retrieval, conversation, and storage-boundary behavior.
 - Story labels/references and Requirement/Scenario IDs current: yes for `S1` onboarding and `S2` Q&A scope.
 - Implemented By maps current: storage and prior deterministic Assistant anchors reconciled.

@@ -148,7 +148,7 @@ Not verified yet.
 - Reversibility: High; Pi and Codex are hidden behind contracts.
 - Client surfaces: Existing Settings modal and Context panel/drawer.
 - API / contract shape: Versioned provider-status/OAuth-flow/conversation/question/answer/source/error schemas under `/api/v1/assistant/**`.
-- Frontend/backend boundary: Browser renders normalized state only; the service owns OAuth, runs, retrieval, persistence, and provenance.
+- Frontend/backend boundary: Browser renders normalized state and the registered bundled Assistant contribution; the service owns OAuth, policy-free session execution, workspace enforcement, persistence, and provenance, while the plugin owns retrieval policy and tool selection.
 - Data / schema impact: New versioned canonical files under `.graphitemd/conversations/`; no canonical database table. A one-way legacy namespace migration preserves existing workspace state.
 - Auth / security impact: Owner session plus XSRF protects mutations; credentials stay under `GRAPHITEMD_STATE_DIR`; only brokered opaque reads reach Pi.
 - Testability: Strong through injected OAuth/runtime doubles and deterministic provider tool-call scripts.
@@ -194,7 +194,7 @@ Select Option 1.
 - Add a framework-neutral GraphiteMD model/auth boundary with injected provider, clock, ID, conversation-store, and workspace-tool dependencies.
 - Adapt Pi `0.80.x` using `AuthStorage`, `ModelRegistry`, a restricted resource loader, an explicit session manager, and `createAgentSession`/current equivalent APIs characterized at the locked version.
 - Use OpenAI provider ID `openai-codex`; default to the Coordinator-proven `gpt-5.4` model while allowing a documented host-only `GRAPHITEMD_CODEX_MODEL` override. Missing provider/model state is explicit; production never falls back to a fake model.
-- Disable automatic extensions, skills, prompts, themes, context files, and built-in tools. Only GraphiteMD's `workspace_search` and `workspace_read` tool definitions enter the session.
+- Disable automatic extensions, skills, prompts, themes, context files, and built-in tools. A bundled Assistant policy declares the only permitted `workspace_search` and `workspace_read` tool bindings; the service validates that declaration against the plugin manifest and provides their enforced implementations.
 - Normalize Pi text, terminal failure, usage, tool request/result, provider/model, abort, and source-read events before they cross application contracts.
 
 ### Authentication And Credential State
@@ -209,8 +209,10 @@ Select Option 1.
 ### Assistant Capability And Retrieval
 
 - Add the bundled `assistant` manifest with declared read-only workspace search/read and model-session capabilities plus Context/Settings contributions.
-- Extend the production SDK/host with narrowly typed registration and broker operations needed by this plugin. Do not broadly exempt `plugins/assistant` from the forbidden-source/import boundary.
+- Extend the production SDK/host with narrowly typed registration and broker operations needed by this plugin. The model-session capability accepts a bounded normalized question plus the plugin-owned prompt, retrieval strategy, and declared tool policy; it rejects undeclared tools or policy outside the read-only contract. Do not broadly exempt `plugins/assistant` from the forbidden-source/import boundary.
 - Reuse `LocalSearchService` and `ConfiguredWorkspaceAuthority` through a service-owned capability provider. Search returns bounded result metadata; read accepts only an issued opaque resource ID and revalidates active workspace/root identity.
+- Keep the service policy-free: it owns Pi lifecycle, model/auth state, run serialization, workspace capability enforcement, source provenance, and conversation persistence, but it does not choose the Assistant prompt, invoke retrieval, select model tools, or render the Assistant experience.
+- Register the bundled plugin's normalized Context contribution through the production host/web adapter. The browser renders that contribution and normalized terminal turn state; it does not import Pi, read workspace files, or reconstruct sources from model text.
 - Apply deterministic result, byte, and total-turn context budgets. Tool results state truncation or denial without returning host paths.
 - Treat note contents as untrusted data in the system prompt. A note cannot grant tools, change system instructions, or create source provenance.
 - Build answer sources from the run's successful `workspace_read` results. The source contract contains only resource ID, display path, revision when useful, and a bounded excerpt/usage marker; it never trusts citations parsed from model text.
@@ -232,7 +234,7 @@ Select Option 1.
 
 ### HTTP And Browser Integration
 
-- Add runtime-validated contracts and authenticated routes for provider status, OAuth start/active/read/answer/cancel/disconnect, current conversation creation/read, and question submission.
+- Add runtime-validated contracts and authenticated routes for provider status, OAuth start/active/read/answer/cancel/disconnect, current conversation creation/read, and a question submission that dispatches to the enabled Assistant contribution rather than a core-owned assistant policy.
 - The first question endpoint may return the terminal normalized turn as one bounded request/response; token streaming is deferred. The UI still provides an accessible busy state and prevents duplicate submissions.
 - Add an `Assistant` Settings area for provider status, connect flow, browser-login link, progress/input, retry, and disconnect.
 - Add an Assistant block to the existing Context panel/drawer with transcript, source list, prompt input, busy/error state, and a direct setup action when disconnected.
@@ -305,12 +307,12 @@ Select Option 1.
 
 - Current clients: authenticated React/Vite browser on desktop and mobile layouts.
 - Plausible future clients: native/desktop wrapper, mobile app, CLI, and plugin-provided views.
-- Reusable product capabilities: provider status/OAuth interaction, normalized Assistant turn, workspace search/read tools, source provenance, conversation persistence, and cancellation/error vocabulary.
+- Reusable product capabilities: provider status/OAuth interaction, policy-free bounded model session, normalized Assistant turn, workspace search/read tools, source provenance, conversation persistence, plugin Context contribution, and cancellation/error vocabulary.
 - API or typed contract: TypeBox schemas in the shared contracts package; HTTP under `/api/v1/assistant/**`; plugin capability contracts remain framework-neutral.
 - OpenAPI plan, if HTTP-facing: not required in this Change because the repository does not yet maintain OpenAPI; shared runtime schemas are authoritative and must be exercised against real HTTP.
 - Backend platform exposed directly to clients?: no. AdonisJS, Pi, provider credentials, filesystem paths, and plugin internals stay behind normalized contracts.
 - Client-specific presentation or local state: modal/drawer visibility, draft question, focus, scroll, and transient polling/input state only. The browser reacquires an active OAuth flow from the service after a Settings remount.
-- Rationale: service authority protects credentials, workspace scope, canonical conversation state, provenance, and future clients from browser-specific behavior.
+- Rationale: service authority protects credentials, workspace scope, canonical conversation state, provenance, and future clients from browser-specific behavior, while the bundled plugin retains the replaceable Assistant policy and presentation responsibility.
 
 ## Alternatives Considered
 
@@ -336,7 +338,7 @@ It produces the smallest slice that proves real product value and the critical t
 - Required: yes
 - ADR path: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md`
 - Status: Proposed until implementation and review prove the boundary.
-- Decision summary: run Pi behind service-owned model/auth capabilities, keep workspace-canonical state in `.graphitemd/`, keep credentials in the default machine-local `~/.graphitemd/` vault (or a non-workspace override), and expose only brokered read-only Assistant tools.
+- Decision summary: run Pi behind service-owned policy-free model/auth capabilities, keep workspace-canonical state in `.graphitemd/`, keep credentials in the default machine-local `~/.graphitemd/` vault (or a non-workspace override), and expose only brokered read-only tools to the bundled Assistant policy/presentation contribution.
 - Reconsider when: Pi's programmatic boundary becomes unstable, local models change disclosure assumptions, multiple providers require a registry, or community plugin isolation changes runtime placement.
 
 ## Implementation Constraints
@@ -374,6 +376,7 @@ It produces the smallest slice that proves real product value and the critical t
 - Pi `0.80.x` is adopted behind an adapter; the characterized implementation locks the compatible `0.80.6` package family rather than the planning-time `0.80.10` latest.
 - Codex OAuth is the only onboarding route and `gpt-5.4` is the initial documented default with a host-only override.
 - The Assistant is a bundled plugin using service-owned model/auth/workspace capabilities.
+- The service is the policy-free model/session and workspace-enforcement host; the bundled Assistant owns prompt, retrieval strategy, tool selection, and Context presentation through declared capabilities.
 - Context/Settings reuse makes a separate design workflow unnecessary for this slice.
 - Source UI is derived from successful reads, never parsed from model text.
 - Canonical conversations and workspace configuration are versioned workspace files beneath `.graphitemd/`; credentials and Pi scratch state are not and default to machine-local `~/.graphitemd/`.
@@ -387,3 +390,4 @@ It produces the smallest slice that proves real product value and the critical t
 - Persisting normalized conversations without a library/resume UI creates inspectable truth before complete navigation; the files are intentionally canonical future input rather than hidden dead state.
 - Legacy namespace migration can halt startup for an ambiguous or unsafe workspace; failing closed protects user state and requires a clear manual recovery path rather than automatic merging.
 - Read access can disclose sensitive note content to the provider. This slice enforces current eligibility boundaries, but user-configurable Assistant exclusions remain important follow-up work.
+- A policy-free brokered model-session seam adds host/plugin integration work, but prevents the core from becoming the de facto permanent Assistant implementation.
