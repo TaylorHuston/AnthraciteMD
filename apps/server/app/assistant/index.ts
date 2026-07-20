@@ -38,7 +38,7 @@ export type PiOAuthCallbacks = Readonly<{
   onPrompt: (prompt: Readonly<{ message: string; placeholder?: string; allowEmpty?: boolean }>) => Promise<string>
   onProgress?: (message: string) => void
   onManualCodeInput?: () => Promise<string>
-  onSelect: (prompt: Readonly<{ message: string; options: readonly Readonly<{ value: string; label: string }>[] }>) => Promise<string | undefined>
+  onSelect: (prompt: Readonly<{ message: string; options: readonly Readonly<{ id: string; label: string }>[] }>) => Promise<string | undefined>
 }>
 
 export interface PiOAuthRuntime {
@@ -438,12 +438,12 @@ export class AssistantOAuthFlowManager {
 
   #waitForSelection(
     record: FlowRecord,
-    choices: readonly Readonly<{ value: string; label: string }>[],
+    choices: readonly Readonly<{ id: string; label: string }>[],
   ): Promise<string | undefined> {
     const values = new Map<string, string>()
     const options = choices.map((choice, index) => {
       const id = `option_${index + 1}`
-      values.set(id, choice.value)
+      values.set(id, choice.id)
       return { id, label: choice.label || `Authorization option ${index + 1}` }
     })
     return this.#waitForInput(record, {

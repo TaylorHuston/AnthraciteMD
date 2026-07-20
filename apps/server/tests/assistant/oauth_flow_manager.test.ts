@@ -88,6 +88,26 @@ describe('GMD-004/S1 R1 GraphiteMD-owned Codex OAuth', () => {
     expect((await manager.listTerminal()).map((flow) => flow.flowId)).toEqual([retry.flowId, failure.flowId])
     expect(JSON.stringify(await manager.listTerminal())).not.toMatch(/authorization code|callback|raw-value/i)
   })
+
+  it('R1-S2 returns the provider option ID after the owner selects its opaque browser choice', async () => {
+    const runtime = new FakePiOAuthRuntime()
+    const manager = new AssistantOAuthFlowManager(runtime, {
+      now: () => '2026-07-20T00:00:00.000Z',
+      nextFlowId: () => 'flow_option',
+    })
+    const flow = await manager.start()
+    await Promise.resolve()
+
+    const selection = runtime.callbacks!.onSelect({
+      message: 'Select OpenAI Codex login method:',
+      options: [{ id: 'browser', label: 'Browser login (default)' }],
+    })
+
+    await expect(manager.answer(flow.flowId, 'option_1')).resolves.toMatchObject({ status: 'awaiting_provider' })
+    await expect(selection).resolves.toBe('browser')
+    runtime.succeed()
+    await expect(manager.waitForTerminal(flow.flowId)).resolves.toMatchObject({ status: 'succeeded' })
+  })
 })
 
 describe('GMD-004/S1 R2 protected credential lifecycle', () => {

@@ -203,7 +203,7 @@ Select Option 1.
 - Store Pi auth/model settings beneath `GRAPHITEMD_STATE_DIR/assistant/pi/`, never beneath `GRAPHITEMD_WORKSPACE_ROOT`.
 - Provision parent directories with owner-only permissions and verify the credential file is not group/world-readable after login and at startup.
 - Model the OAuth lifecycle as `awaiting_provider`, `awaiting_input`, `succeeded`, `failed`, or `cancelled`, with auth URL, device code, progress, selection/text/manual-code prompt, timestamps, and sanitized error.
-- Allow one active flow; flow IDs and request IDs are opaque. Expose that active normalized flow to the owner so a Settings remount can resume its prompt instead of offering a conflicting start. Reject stale answers, invalid selections, empty required values, and concurrent starts. Retain only a small bounded set of terminal flow summaries with no secrets.
+- Allow one active flow; flow IDs and request IDs are opaque. Expose that active normalized flow to the owner so a Settings remount can resume its prompt instead of offering a conflicting start. Preserve the provider-supplied opaque selection ID when answering a choice prompt; reject only stale or invalid selections, empty required values, and concurrent starts. Retain only a small bounded set of terminal flow summaries with no secrets.
 - Require the normal owner session on status/read routes and owner session plus XSRF on start/answer/cancel/disconnect mutations.
 
 ### Assistant Capability And Retrieval

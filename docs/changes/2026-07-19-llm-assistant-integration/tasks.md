@@ -54,6 +54,7 @@ status: in_progress
   - [ ] `R1-S2`: cover accessible cancel/input/progress/error states, invalid/stale input, provider failure, bounded terminal retention, retry, and concurrent-flow conflict.
   - [x] `R1-S2a`: refine the pending selection UI into a labelled radio-card group, a choice-specific primary continuation action, and a quiet secondary cancellation action without changing OAuth behavior or provider options.
   - [x] `R1-S2b`: recover the active normalized OAuth prompt after Settings remount instead of offering a conflicting second start.
+  - [x] `R1-S2c`: preserve the provider-supplied opaque option ID when answering an OAuth selection prompt.
 - [ ] 4.3 Implement `GMD-004/S1/R2 Protected Credential Lifecycle`.
   - [ ] `R2-S1`: keep credentials/callback material out of workspace, browser, conversations, and logs while exposing sanitized status in Settings.
   - [ ] `R2-S2`: disconnect through Settings without changing workspace or canonical conversation content.
@@ -118,6 +119,7 @@ status: in_progress
 | 2026-07-20 | GMD-004/S2 R1 Pi/HTTP adapter | main + Context7 Pi SDK documentation | Pi adapter, assistant question route, server dependency graph | The production adapter exposes only custom `workspace_search` and `workspace_read` tools to a no-builtins Pi session and routes authenticated normalized questions through the service. Direct adapter/HTTP fake-runtime evidence remains pending. | `71cfacf` |
 | 2026-07-20 | GMD-004/S1 R1-S2a OAuth selection hierarchy | main | `apps/web/src/SettingsPanel.tsx`, `AssistantSettings.css`, Settings component tests | Replaced the ambiguous native inline select with a radio-card choice group, a selected-choice primary action, and a quiet cancellation action; the dynamic provider options and normalized answer/cancel contracts are unchanged. | `b2f46f9` |
 | 2026-07-20 | GMD-004/S1 R1-S2b active OAuth recovery | main | OAuth manager, active-flow contract/route, Settings component tests | The owner can remount Settings during an active Codex flow and recover the same normalized prompt rather than attempt a conflicting second start. | `9c1b8a8` |
+| 2026-07-20 | GMD-004/S1 R1-S2c provider selection-ID bridge | main | Pi OAuth callback adapter and OAuth manager tests | Mapped the Pi provider's `id` option shape through the normalized selection prompt, so the chosen `browser` or `device_code` value reaches Pi instead of being rejected as stale. | commit pending |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
@@ -137,6 +139,8 @@ status: in_progress
 | 2026-07-20 | `pnpm --filter @graphitemd/workspace test`; `pnpm --filter @graphitemd/plugin-sdk test`; focused server workspace/state/search/plugin/conversation/authentication suites; workspace/plugin-sdk/server lint and typecheck | focused automated test / supporting gate | `GMD-004/S1/R2-S1` and `GMD-004/S2/R2-S1,R3-S1`: safe legacy state migrates atomically to `.graphitemd`, conflicts and symlinks fail closed, retrieval/state consumers use the canonical namespace, and machine secret state defaults outside the workspace. | passing: 38 workspace, 14 SDK, and 64 focused server tests |
 | 2026-07-20 | `pnpm --filter @graphitemd/web test -- SettingsPanel.test.tsx`; web lint and typecheck | focused automated test | `GMD-004/S1/R1-S2a`: the default provider choice is a labelled checked radio, choosing another option changes the specific continuation label and submitted value, and cancellation remains separately available. | passing: 6 files, 56 tests |
 | 2026-07-20 | `pnpm --filter @graphitemd/server test -- oauth_flow_manager.test.ts`; `pnpm --filter @graphitemd/web test -- SettingsPanel.test.tsx`; contracts/server/web typechecks; `pnpm build` | focused automated test / supporting gate | `GMD-004/S1/R1-S2b`: an active flow remains available while running, terminal cancellation clears it, and Settings restores a provider-supplied choice after remount rather than posting a conflicting start. | passing: server 86, web 57, contracts 10 tests; all focused typechecks and production build passed |
+| 2026-07-20 | `pnpm --filter @graphitemd/server test -- oauth_flow_manager.test.ts`; server typecheck and lint | focused automated test / supporting gate | `GMD-004/S1/R1-S2c`: a provider choice with `id: browser` is normalized to a browser `option_1` control and resolves back to `browser`, rather than producing an invalid-input error. | passing: server 87 tests |
+| 2026-07-20 | Isolated `PiRuntimeBoundary` OAuth smoke using a temporary machine-state directory, then `pnpm build` | adapter smoke / supporting gate | The locked live Pi package emits a selection, accepts the normalized browser choice, and reaches its manual browser-code prompt without persisting credentials; production build succeeds. | passing; no external authorization or credential exchange performed |
 | 2026-07-20 | Browser preview with mock normalized owner/workspace/OAuth responses at `1440x900` and `390x844` | rendered UI verification | `GMD-004/S1/R1-S2a`: direct inspection confirms selected radio cards, an explicit primary continuation action, secondary cancellation, no narrow overflow, no error overlay, and no console errors. | passing for the pending-selection state; remaining OAuth states still pending |
 | YYYY-MM-DD | Production fake-provider browser journey | deterministic E2E | Connect, ask, brokered read, service-derived sources, persistence, disconnect, desktop/mobile continuity | pending |
 | YYYY-MM-DD | Rendered Context/Settings matrix | rendered UI verification | GMD-004/S2 R4 responsive states, interaction, accessibility, and visual containment | pending |
@@ -149,6 +153,7 @@ status: in_progress
 |---|---|---|---|---|
 | YYYY-MM-DD | Owner tests Codex connection and asks a known vault question. | verification gap / defect / requirement refinement | Update code, GMD-004 evidence/gaps, review, and this ledger as appropriate. | pending |
 | 2026-07-20 | Settings showed `connecting` and a generic start error after the active OAuth flow was no longer held in the remounted browser component. | defect | Added an owner-authenticated active-flow route and Settings recovery; retained one-flow conflict enforcement. | fixed; live owner OAuth remains pending |
+| 2026-07-20 | The restored browser-login choice displayed correctly but its continuation returned `That authorization input is no longer valid.` | defect | Corrected the Pi provider option bridge from a nonexistent `value` field to the actual opaque `id` field and added a failing-first regression test. | fixed; fresh owner OAuth attempt pending |
 
 ## Planning Updates
 
@@ -181,6 +186,7 @@ status: in_progress
 | Workspace namespace migration | Existing `.graphite/` moves only by safe atomic rename; conflict, symlink, escape, or partial layout stops without merge or deletion. | `packages/workspace` 38-test suite passing |
 | Secret-vault boundary | Unset state defaults to `~/.graphitemd/`; configured state cannot resolve inside the workspace and remains owner-only. | focused `owner_setup_service` test passing |
 | OAuth remount recovery | Browser reacquires the sole active normalized flow before rendering another connect action; terminal flows clear it. | OAuth manager and Settings component focused tests passing |
+| OAuth provider option shape | Pi selection prompts use opaque `id` values; GraphiteMD maps the browser-visible choice back to that ID without exposing provider internals. | OAuth manager provider-shape regression test passing |
 
 ## Verification Environment
 
