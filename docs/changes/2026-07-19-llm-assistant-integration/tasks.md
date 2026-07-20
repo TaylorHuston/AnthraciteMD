@@ -5,8 +5,8 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: implemented `GMD-004/S2/R2` service-side brokered retrieval, context limits, UTF-8-safe truncation, and source provenance.
-- Next action: implement `GMD-004/S2/R3` canonical conversation persistence, then connect it to the restricted Pi question loop.
+- Last completed action: implemented `GMD-004/S2/R3` canonical, confined conversation persistence with atomic terminal replacement and interruption recovery.
+- Next action: implement `GMD-004/S2/R1` restricted Pi question orchestration over the completed retrieval and conversation boundaries.
 - Active branch/ref: `change/llm-assistant-integration` at OAuth phase checkpoint `f5738d7`.
 - Expected dirty files: conversation runtime/tests, restricted run orchestration, authenticated question routes/tests, bundled Assistant plugin, Context UI/test, and this ledger.
 - Known blockers: none for deterministic implementation. A separate owner-completed Codex OAuth is still required for live-provider verification.
@@ -59,8 +59,8 @@ status: in_progress
   - [x] `R2-S2`: enforce deterministic search/read/turn budgets and explicit truncation.
   - [x] `R2-S3`: derive source evidence only from successful brokered reads and never from model citation text.
 - [ ] 4.6 Implement `GMD-004/S2/R3 Inspectable Conversation Record`.
-  - [ ] `R3-S1`: atomically store versioned normalized turns beneath `.graphite/conversations/` without credentials or host paths.
-  - [ ] `R3-S2`: reconcile interrupted turns honestly and fail closed on malformed/partial state.
+  - [x] `R3-S1`: atomically store versioned normalized turns beneath `.graphite/conversations/` without credentials or host paths.
+  - [x] `R3-S2`: reconcile interrupted turns honestly and fail closed on malformed/partial state.
 - [ ] 4.7 Implement `GMD-004/S2/R4 Accessible Context Experience`.
   - [ ] `R4-S1`: add desktop Context question/answer/source states without obscuring the document workbench.
   - [ ] `R4-S2`: reuse the narrow full-screen Context drawer with touch targets and focus containment/restoration.
@@ -103,6 +103,7 @@ status: in_progress
 | 2026-07-19 | Enabling contracts and capability facade | main + bounded discovery worker; Context7 Pi API check and Coordinator-local `0.80.6` reference | `packages/contracts`, `packages/plugin-sdk` | Failing-first contract coverage followed by runtime-validated sanitized provider/OAuth/question/turn/source schemas and a declared service-owned Assistant capability facade. No Pi, OAuth, routes, manifest, retrieval, persistence, or UI behavior yet. | `452a781` |
 | 2026-07-19 | GMD-004/S1 OAuth boundary and Settings controls | main | `apps/server/app/assistant`, authenticated assistant routes/tests, Settings UI, contracts, Pi package lock | Locked Pi's compatible `0.80.6` adapter graph; credentials and session scratch remain machine-local. Deterministic tests cover flow conflict/cancel/retry/failure, transient device-code instructions, credential permissions, normalized owner provider state, and unauthenticated route rejection. The Settings tab polls only normalized flow state and never receives credentials. Live OAuth remains an external verification gap. | `f5738d7` |
 | 2026-07-20 | GMD-004/S2 R2 confined context and provenance | main + bounded discovery worker | `apps/server/app/assistant/workspace_context.*`, Assistant error contract, GMD-004 Epic | A service-owned broker limits search/read context, revalidates every opaque resource through workspace authority, avoids UTF-8 replacement output, emits explicit context-limit failure, and records source evidence only after successful reads. | `9d9a551` |
+| 2026-07-20 | GMD-004/S2 R3 canonical conversation record | main | `apps/server/app/assistant/conversation_store.*`, GMD-004 Epic | Confined atomic conversation documents persist normalized turns without provider state. Malformed/redirection state fails closed and unfinished turns recover to explicit interrupted failures. | pending |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
@@ -117,6 +118,7 @@ status: in_progress
 | 2026-07-19 | `pnpm --filter @graphitemd/contracts test`; `pnpm --filter @graphitemd/plugin-sdk test`; package lints/typechecks; server bundled import-boundary suite | focused automated test / supporting gate | Sanitized Assistant contracts reject token-bearing or malformed terminal payloads; SDK operations require declared capabilities and validate replies before plugins can consume them; the existing bundled import boundary remains green. | passing; enables later Story evidence but does not verify a GMD-004 Scenario alone |
 | 2026-07-19 | contracts/plugin SDK suites; server OAuth and authenticated HTTP suites; web Settings suite; package lint/typecheck | focused automated test | S1 deterministic flow states, protected state permissions, normalized owner-only service responses, unauthenticated mutation rejection, and accessible three-tab Settings navigation. | passing; live provider path remains pending owner OAuth |
 | 2026-07-20 | `pnpm --filter @graphitemd/server test -- workspace_context.test.ts`; server typecheck/lint; contracts and plugin SDK suites | focused automated test | `GMD-004/S2/R2-S1-S3`: existing workspace authority is rechecked at brokered reads; `.graphite`, unknown and symlinked content stay out; context bounds are UTF-8 safe and source provenance follows successful reads only. | passing |
+| 2026-07-20 | `pnpm --filter @graphitemd/server test -- conversation_store.test.ts`; server typecheck/lint | focused automated test | `GMD-004/S2/R3-S1-S2`: canonical conversation files are versioned and confined, avoid credential/path leakage, recover interrupted turns honestly, and fail closed for malformed or redirected state. | passing |
 | YYYY-MM-DD | Production fake-provider browser journey | deterministic E2E | Connect, ask, brokered read, service-derived sources, persistence, disconnect, desktop/mobile continuity | pending |
 | YYYY-MM-DD | Rendered Context/Settings matrix | rendered UI verification | GMD-004/S2 R4 responsive states, interaction, accessibility, and visual containment | pending |
 | YYYY-MM-DD | Live Codex note-grounding playtest | live-provider playtest | Real OAuth/model can answer from a uniquely identifiable note with matching source provenance | pending owner authorization |
@@ -156,7 +158,7 @@ status: in_progress
 
 | Environment | Purpose | Readiness |
 |---|---|---|
-| Temporary filesystem workspace | Authority, boundary, persistence, and recovery tests. | available; retrieval suite passing |
+| Temporary filesystem workspace | Authority, boundary, persistence, and recovery tests. | available; retrieval and conversation suites passing |
 | Deterministic injected Pi runtime | Production-path question, provenance, and conversation E2E. | pending implementation |
 | Owner Codex subscription | Live OAuth/model grounding playtest. | pending owner interaction after deterministic path |
 
