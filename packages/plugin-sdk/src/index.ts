@@ -1,14 +1,12 @@
 import {
-  AssistantOAuthFlow,
-  AssistantProviderStatus,
-  AssistantQuestion,
+  AssistantQuestion as AssistantQuestionContract,
+  AssistantModelSessionRequest,
   AssistantTurn,
   MarkdownNoteResponse,
   SearchResponse,
   matchesContract,
-  type AssistantOAuthFlow as AssistantOAuthFlowValue,
-  type AssistantProviderStatus as AssistantProviderStatusValue,
   type AssistantQuestion as AssistantQuestionValue,
+  type AssistantModelSessionRequest as AssistantModelSessionRequestValue,
   type AssistantTurn as AssistantTurnValue,
   type MarkdownNoteResponse as MarkdownNoteResponseValue,
   type SearchResponse as SearchResponseValue,
@@ -17,7 +15,12 @@ import {
 export const PLUGIN_MANIFEST_SCHEMA_VERSION = 1 as const
 
 export type PluginPermission = `${string}:${string}`
-export type PluginContribution = Readonly<{ id: string; title: string }>
+export type PluginContribution = Readonly<{
+  id: string
+  title: string
+  surface?: 'context'
+  renderer?: 'assistant-conversation' | 'system-status'
+}>
 export type PluginContributions = Readonly<{
   commands?: readonly PluginContribution[]
   views?: readonly PluginContribution[]
@@ -71,7 +74,9 @@ export function validatePluginManifest(value: unknown, hostVersion: string): Man
   const contributionsValid = isRecord(value) && isRecord(value.contributions) &&
     Object.entries(value.contributions).every(([kind, entries]) =>
       ['commands', 'views', 'tools', 'routes', 'events', 'background'].includes(kind) && Array.isArray(entries) &&
-      entries.every((entry) => isRecord(entry) && typeof entry.id === 'string' && IDENTIFIER.test(entry.id) && typeof entry.title === 'string' && entry.title.length > 0),
+      entries.every((entry) => isRecord(entry) && typeof entry.id === 'string' && IDENTIFIER.test(entry.id) && typeof entry.title === 'string' && entry.title.length > 0 &&
+        (entry.surface === undefined || entry.surface === 'context') &&
+        (entry.renderer === undefined || entry.renderer === 'assistant-conversation' || entry.renderer === 'system-status')),
     )
   if (!isRecord(value) || value.schemaVersion !== PLUGIN_MANIFEST_SCHEMA_VERSION ||
       typeof value.id !== 'string' || !IDENTIFIER.test(value.id) ||
@@ -125,9 +130,7 @@ export function createCapabilityBroker(manifest: PluginManifest, provider: Capab
 }
 
 export type AssistantCapabilities = Readonly<{
-  providerStatus(): Promise<AssistantProviderStatusValue>
-  startOAuth(): Promise<AssistantOAuthFlowValue>
-  ask(question: AssistantQuestionValue): Promise<AssistantTurnValue>
+  runModelSession(request: AssistantModelSessionRequestValue): Promise<AssistantTurnValue>
   search(input: Readonly<{ query: string; limit: number }>): Promise<SearchResponseValue>
   read(resource: OpaqueResourceId): Promise<MarkdownNoteResponseValue>
 }>
@@ -148,13 +151,11 @@ export function createAssistantCapabilities(broker: ReturnType<typeof createCapa
     return value as Value
   }
   return Object.freeze({
-    providerStatus: () => response<AssistantProviderStatusValue>(AssistantProviderStatus, { permission: 'assistant:provider-status', resource: assistant }),
-    startOAuth: () => response<AssistantOAuthFlowValue>(AssistantOAuthFlow, { permission: 'assistant:oauth-flow', resource: assistant, input: { action: 'start' } }),
-    ask: (question) => {
-      if (!matchesContract(AssistantQuestion, question)) {
-        return Promise.reject(new PluginCapabilityDenied('unavailable', 'Assistant question is invalid.'))
+    runModelSession: (request) => {
+      if (!matchesContract(AssistantModelSessionRequest, request)) {
+        return Promise.reject(new PluginCapabilityDenied('unavailable', 'Assistant model-session request is invalid.'))
       }
-      return response<AssistantTurnValue>(AssistantTurn, { permission: 'assistant:question', resource: assistant, input: question })
+      return response<AssistantTurnValue>(AssistantTurn, { permission: 'assistant:model-session', resource: assistant, input: request })
     },
     search: (input) => response<SearchResponseValue>(SearchResponse, { permission: 'workspace:search', resource: workspace, input }),
     read: (resource) => response<MarkdownNoteResponseValue>(MarkdownNoteResponse, { permission: 'workspace:read', resource }),
@@ -186,7 +187,14 @@ export type PluginContext = Readonly<{
   capabilities: ReturnType<typeof createCapabilityBroker>
   assistant: AssistantCapabilities
   state: ReturnType<typeof createPluginStateAdapter>
+  registerAssistantQuestionHandler(handler: AssistantQuestionHandler): () => void
 }>
+export type AssistantQuestion = AssistantQuestionValue
+export type AssistantQuestionHandler = (input: AssistantQuestionValue) => Promise<AssistantTurnValue>
+export type AssistantQuestionDispatch =
+  | Readonly<{ kind: 'handled'; turn: AssistantTurnValue }>
+  | Readonly<{ kind: 'unavailable' }>
+  | Readonly<{ kind: 'denied' }>
 export interface GraphitePlugin {
   manifest: PluginManifest
   activate(context: PluginContext): Promise<void | (() => void | Promise<void>)>
@@ -205,6 +213,7 @@ export class PluginHost {
   readonly #inventory = new Map<string, PluginInventoryItem>()
   readonly #plugins = new Map<string, GraphitePlugin>()
   readonly #disposers = new Map<string, () => void | Promise<void>>()
+  #assistantQuestionHandler: Readonly<{ pluginId: string; handler: AssistantQuestionHandler }> | undefined = undefined
   constructor(private readonly options: PluginHostOptions) {}
 
   async load(candidates: readonly unknown[]): Promise<void> {
@@ -277,10 +286,12 @@ export class PluginHost {
         capabilities,
         assistant: createAssistantCapabilities(capabilities),
         state: createPluginStateAdapter(id, plugin.manifest.state.schemaVersion, this.options.stateBackend),
+        registerAssistantQuestionHandler: (handler) => this.#registerAssistantQuestionHandler(plugin, handler),
       })
       if (dispose) this.#disposers.set(id, dispose)
       this.#inventory.set(id, { id, manifest: plugin.manifest, status: 'active', contributions: plugin.manifest.contributions })
     } catch (error) {
+      this.#removeAssistantQuestionHandler(id)
       this.#inventory.set(id, { id, manifest: plugin.manifest, status: 'activation_failed', message: error instanceof Error ? error.message : 'Activation failed.', contributions: {} })
     }
   }
@@ -293,7 +304,41 @@ export class PluginHost {
     }
     await this.#disposers.get(id)?.()
     this.#disposers.delete(id)
+    this.#removeAssistantQuestionHandler(id)
     const plugin = this.#plugins.get(id)
     this.#inventory.set(id, { id, ...(plugin ? { manifest: plugin.manifest } : {}), status: 'disabled', contributions: {} })
+  }
+
+  async dispatchAssistantQuestion(input: AssistantQuestionValue): Promise<AssistantQuestionDispatch> {
+    const registered = this.#assistantQuestionHandler
+    if (!registered || !matchesContract(AssistantQuestionContract, input) || !input.question.trim()) {
+      return registered ? { kind: 'denied' } : { kind: 'unavailable' }
+    }
+    try {
+      const turn = await registered.handler(input)
+      return matchesContract(AssistantTurn, turn) ? { kind: 'handled', turn } : { kind: 'unavailable' }
+    } catch {
+      return { kind: 'unavailable' }
+    }
+  }
+
+  #registerAssistantQuestionHandler(plugin: GraphitePlugin, handler: AssistantQuestionHandler): () => void {
+    const hasContextContribution = plugin.manifest.contributions.views?.some((view) => view.id === 'assistant-context') ?? false
+    const requiredPermissions: readonly PluginPermission[] = ['assistant:model-session', 'workspace:search', 'workspace:read']
+    if (!hasContextContribution || !requiredPermissions.every((permission) => plugin.manifest.permissions.includes(permission))) {
+      throw new PluginCapabilityDenied('undeclared', 'Assistant Context handlers require their declared view and read-only capabilities.')
+    }
+    if (this.#assistantQuestionHandler) {
+      throw new PluginCapabilityDenied('unavailable', 'Only one Assistant Context handler may be active.')
+    }
+    const registered = { pluginId: plugin.manifest.id, handler }
+    this.#assistantQuestionHandler = registered
+    return () => {
+      if (this.#assistantQuestionHandler === registered) this.#assistantQuestionHandler = undefined
+    }
+  }
+
+  #removeAssistantQuestionHandler(pluginId: string): void {
+    if (this.#assistantQuestionHandler?.pluginId === pluginId) this.#assistantQuestionHandler = undefined
   }
 }

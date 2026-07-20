@@ -10,6 +10,7 @@ import { AssistantQuestionService, type AssistantRunRuntime } from './question_s
 import { AssistantWorkspaceContext } from './workspace_context.js'
 
 const roots: string[] = []
+const policy = { prompt: 'Answer only from evidence in read workspace notes.', tools: ['workspace_search', 'workspace_read'] as const }
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))))
 
 async function fixture(runtime: AssistantRunRuntime) {
@@ -29,8 +30,9 @@ describe('GMD-004/S2 R1 read-only workspace-grounded answers', () => {
   it('R1-S1 runs only brokered tools and persists the resulting service-derived sources', async () => {
     const runtime: AssistantRunRuntime = {
       status: async () => ({ connected: true, model: 'gpt-5.4' }),
-      answer: async ({ question, tools }) => {
+      run: async ({ question, tools, policy: receivedPolicy }) => {
         expect(question).toContain('launch')
+        expect(receivedPolicy).toEqual(policy)
         const [result] = await tools.search('launch')
         const note = await tools.read(result!.resourceId)
         expect(note.text).toContain('2030-04-05')
@@ -38,7 +40,7 @@ describe('GMD-004/S2 R1 read-only workspace-grounded answers', () => {
       },
     }
     const { service } = await fixture(runtime)
-    const turn = await service.ask({ question: 'What is the launch date?' })
+    const turn = await service.ask({ question: 'What is the launch date?', policy })
 
     expect(turn).toMatchObject({ status: 'completed', answer: 'The launch date is 2030-04-05.', sources: [
       { displayPath: 'Launch.md', truncated: false },
@@ -46,20 +48,20 @@ describe('GMD-004/S2 R1 read-only workspace-grounded answers', () => {
   })
 
   it('R1-S2 produces an honest no-evidence terminal result when the runtime performs no successful read', async () => {
-    const { service } = await fixture({ status: async () => ({ connected: true, model: 'gpt-5.4' }), answer: async () => 'Speculative answer' })
-    await expect(service.ask({ question: 'What is unknown?' })).rejects.toMatchObject({ code: 'no_relevant_evidence' })
+    const { service } = await fixture({ status: async () => ({ connected: true, model: 'gpt-5.4' }), run: async () => 'Speculative answer' })
+    await expect(service.ask({ question: 'What is unknown?', policy })).rejects.toMatchObject({ code: 'no_relevant_evidence' })
   })
 
   it('R1-S3 rejects disconnected, empty, and concurrent questions without starting ambiguous work', async () => {
-    const disconnected = await fixture({ status: async () => ({ connected: false, model: null }), answer: async () => 'unused' })
-    await expect(disconnected.service.ask({ question: 'Anything?' })).rejects.toMatchObject({ code: 'provider_unavailable' })
+    const disconnected = await fixture({ status: async () => ({ connected: false, model: null }), run: async () => 'unused' })
+    await expect(disconnected.service.ask({ question: 'Anything?', policy })).rejects.toMatchObject({ code: 'provider_unavailable' })
 
     let release!: () => void
     const pending = new Promise<void>((resolve) => { release = resolve })
-    const active = await fixture({ status: async () => ({ connected: true, model: 'gpt-5.4' }), answer: async ({ tools }) => { await tools.search('launch'); await pending; return 'done' } })
-    await expect(active.service.ask({ question: '   ' })).rejects.toMatchObject({ code: 'invalid_input' })
-    const first = active.service.ask({ question: 'launch?' })
-    await expect(active.service.ask({ question: 'launch again?' })).rejects.toMatchObject({ code: 'question_in_flight' })
+    const active = await fixture({ status: async () => ({ connected: true, model: 'gpt-5.4' }), run: async ({ tools }) => { await tools.search('launch'); await pending; return 'done' } })
+    await expect(active.service.ask({ question: '   ', policy })).rejects.toMatchObject({ code: 'invalid_input' })
+    const first = active.service.ask({ question: 'launch?', policy })
+    await expect(active.service.ask({ question: 'launch again?', policy })).rejects.toMatchObject({ code: 'question_in_flight' })
     release()
     await expect(first).rejects.toMatchObject({ code: 'no_relevant_evidence' })
   })

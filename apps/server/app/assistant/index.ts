@@ -17,6 +17,7 @@ import { Type } from 'typebox'
 import type {
   AssistantError,
   AssistantFlowId,
+  AssistantModelSessionPolicy,
   AssistantOAuthFlow,
   AssistantOAuthInput,
   AssistantProviderStatus,
@@ -160,6 +161,7 @@ export class PiRuntimeBoundary implements PiOAuthRuntime {
     sessionId: string
     systemPrompt: string
     customTools: readonly ToolDefinition[]
+    enabledTools: readonly AssistantModelSessionPolicy['tools'][number][]
     modelId?: string
   }>): Promise<Readonly<{ session: AgentSession; sessionFile: string | null }>> {
     await this.assertProtectedState()
@@ -167,7 +169,9 @@ export class PiRuntimeBoundary implements PiOAuthRuntime {
     const model = this.#modelRegistry.find(OPENAI_CODEX_PROVIDER, options.modelId ?? DEFAULT_OPENAI_CODEX_MODEL)
     if (!model) throw new Error('The configured Codex model is unavailable.')
 
-    const settingsManager = SettingsManager.create(workspaceCwd, this.paths.root)
+    // Pi is an execution engine, not a second workspace configuration or
+    // transcript store. The GraphiteMD conversation store remains canonical.
+    const settingsManager = SettingsManager.inMemory()
     const resourceLoader = new DefaultResourceLoader({
       cwd: workspaceCwd,
       agentDir: this.paths.root,
@@ -180,21 +184,21 @@ export class PiRuntimeBoundary implements PiOAuthRuntime {
       systemPrompt: options.systemPrompt,
     })
     await resourceLoader.reload()
-    const sessionManager = SessionManager.create(workspaceCwd, this.paths.sessions, { id: options.sessionId })
+    const sessionManager = SessionManager.inMemory()
     const { session } = await createAgentSession({
       cwd: workspaceCwd,
       agentDir: this.paths.root,
       authStorage: this.#authStorage,
       modelRegistry: this.#modelRegistry,
       model,
-      noTools: 'builtin',
+      tools: [...options.enabledTools],
       customTools: [...options.customTools],
       resourceLoader,
       sessionManager,
       settingsManager,
     })
     await this.assertProtectedState()
-    return { session, sessionFile: sessionManager.getSessionFile() ?? null }
+    return { session, sessionFile: null }
   }
 
   async assistantRuntimeStatus(): Promise<Readonly<{ connected: boolean; model: string | null }>> {
@@ -204,30 +208,51 @@ export class PiRuntimeBoundary implements PiOAuthRuntime {
   }
 }
 
-export class PiAssistantRuntime {
+/**
+ * Policy-free Pi adapter. A bundled Assistant contribution supplies the
+ * bounded prompt and declared tool list through the brokered model session.
+ */
+export class PiModelSessionRuntime {
   constructor(private readonly boundary: PiRuntimeBoundary, private readonly workspaceCwd: string) {}
 
   status() { return this.boundary.assistantRuntimeStatus() }
 
-  async answer(input: Readonly<{
+  async run(input: Readonly<{
     question: string
+    policy: AssistantModelSessionPolicy
     tools: Readonly<{ search(query: string): Promise<readonly Readonly<{ resourceId: string; title: string; displayPath: string; snippet: string | null }>[]>; read(resourceId: string): Promise<Readonly<{ text: string }>> }>
   }>): Promise<string> {
-    const tools: ToolDefinition[] = [
-      defineTool({ name: 'workspace_search', label: 'Search workspace', description: 'Search eligible Markdown notes by question terms.', parameters: Type.Object({ query: Type.String() }), async execute(_id, params) {
-        const results = await input.tools.search(params.query)
-        return { content: [{ type: 'text' as const, text: JSON.stringify(results) }], details: {}, isError: false }
-      } }),
-      defineTool({ name: 'workspace_read', label: 'Read workspace note', description: 'Read one eligible note by opaque resource ID returned from workspace_search.', parameters: Type.Object({ resourceId: Type.String() }), async execute(_id, params) {
-        const note = await input.tools.read(params.resourceId)
-        return { content: [{ type: 'text' as const, text: note.text }], details: {}, isError: false }
-      } }),
-    ]
+    const tools: ToolDefinition[] = []
+    if (input.policy.tools.includes('workspace_search')) {
+      tools.push(defineTool({
+        name: 'workspace_search',
+        label: 'Search workspace',
+        description: 'Search eligible Markdown notes by question terms.',
+        parameters: Type.Object({ query: Type.String() }),
+        async execute(_id, params) {
+          const results = await input.tools.search(params.query)
+          return { content: [{ type: 'text' as const, text: JSON.stringify(results) }], details: {}, isError: false }
+        },
+      }))
+    }
+    if (input.policy.tools.includes('workspace_read')) {
+      tools.push(defineTool({
+        name: 'workspace_read',
+        label: 'Read workspace note',
+        description: 'Read one eligible note by opaque resource ID returned from workspace_search.',
+        parameters: Type.Object({ resourceId: Type.String() }),
+        async execute(_id, params) {
+          const note = await input.tools.read(params.resourceId)
+          return { content: [{ type: 'text' as const, text: note.text }], details: {}, isError: false }
+        },
+      }))
+    }
     const { session } = await this.boundary.createRestrictedSession({
       workspaceCwd: this.workspaceCwd,
       sessionId: `run_${Math.random().toString(36).slice(2)}`,
-      systemPrompt: 'Answer only from the content returned by workspace_search and workspace_read. Use both tools before answering. If the evidence is insufficient, say so plainly. Never claim a source you did not read.',
+      systemPrompt: input.policy.prompt,
       customTools: tools,
+      enabledTools: input.policy.tools,
     })
     let answer = ''
     const unsubscribe = session.subscribe((event: AgentSessionEvent) => {

@@ -500,11 +500,15 @@ describe('GMD-003/S1 production plugin host', () => {
     const inventory = await fetch(`${origin}/api/v1/plugins`, { headers: { cookie: authenticated.cookie } })
     expect(inventory.status).toBe(200)
     expect(await inventory.json()).toEqual({
-      plugins: [expect.objectContaining({
+      plugins: expect.arrayContaining([expect.objectContaining({
         id: 'system-status',
         status: 'active',
         manifest: expect.objectContaining({ permissions: ['status:read'] }),
-      })],
+      }), expect.objectContaining({
+        id: 'assistant',
+        status: 'active',
+        manifest: expect.objectContaining({ permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'] }),
+      })]),
     })
 
     const disabled = await fetch(`${origin}/api/v1/plugins/system-status`, {

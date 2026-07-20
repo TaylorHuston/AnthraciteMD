@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { Check } from 'typebox/value'
 import {
   AssistantOAuthFlow,
+  AssistantModelSessionPolicy,
+  AssistantModelSessionRequest,
   AssistantProviderStatus,
   AssistantQuestion,
   AssistantSource,
@@ -114,6 +116,25 @@ describe('public contracts', () => {
       turnId: 'turn_alpha', conversationId: 'conv_alpha', status: 'completed', question: 'Where?',
       provider: 'openai-codex', model: 'gpt-5.4', createdAt: '2026-07-19T12:00:00.000Z', completedAt: null,
       answer: 'Some answer', error: null, sources: [],
+    })).toBe(false)
+  })
+
+  it('GMD-004/S2 R1-S1 accepts only bounded, declared model-session policy', () => {
+    expect(matchesContract(AssistantModelSessionPolicy, {
+      prompt: 'Answer only from the workspace evidence returned by the declared tools.',
+      tools: ['workspace_search', 'workspace_read'],
+    })).toBe(true)
+    expect(matchesContract(AssistantModelSessionRequest, {
+      conversationId: 'conv_alpha', question: 'Which note explains GraphiteMD?',
+      policy: { prompt: 'Ground answers in read notes.', tools: ['workspace_search', 'workspace_read'] },
+    })).toBe(true)
+
+    expect(matchesContract(AssistantModelSessionPolicy, { prompt: '   ', tools: ['workspace_search'] })).toBe(false)
+    expect(matchesContract(AssistantModelSessionPolicy, { prompt: 'x'.repeat(4_001), tools: ['workspace_search'] })).toBe(false)
+    expect(matchesContract(AssistantModelSessionPolicy, { prompt: 'Ground answers.', tools: ['workspace_search', 'workspace_search'] })).toBe(false)
+    expect(matchesContract(AssistantModelSessionPolicy, { prompt: 'Ground answers.', tools: ['workspace_search', 'shell'] })).toBe(false)
+    expect(matchesContract(AssistantModelSessionRequest, {
+      question: 'x'.repeat(4_001), policy: { prompt: 'Ground answers.', tools: ['workspace_search'] },
     })).toBe(false)
   })
 })

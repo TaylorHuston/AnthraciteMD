@@ -63,7 +63,12 @@ export const SearchRebuildResponse = Type.Object({
 })
 export type SearchRebuildResponse = Static<typeof SearchRebuildResponse>
 
-const PluginContribution = Type.Object({ id: Type.String(), title: Type.String() })
+const PluginContribution = Type.Object({
+  id: Type.String(),
+  title: Type.String(),
+  surface: Type.Optional(Type.Literal('context')),
+  renderer: Type.Optional(Type.Union([Type.Literal('assistant-conversation'), Type.Literal('system-status')])),
+})
 const PluginContributions = Type.Object({
   commands: Type.Optional(Type.Array(PluginContribution)),
   views: Type.Optional(Type.Array(PluginContribution)),
@@ -203,6 +208,28 @@ export const AssistantQuestion = Type.Object({
   question: Type.String({ minLength: 1 }),
 }, { additionalProperties: false })
 export type AssistantQuestion = Static<typeof AssistantQuestion>
+
+/** The only workspace tools a read-only Assistant policy may request. */
+export const AssistantToolName = Type.Union([
+  Type.Literal('workspace_search'),
+  Type.Literal('workspace_read'),
+])
+export type AssistantToolName = Static<typeof AssistantToolName>
+
+/** Plugin-owned policy supplied to the service-owned model session boundary. */
+export const AssistantModelSessionPolicy = Type.Object({
+  prompt: Type.String({ minLength: 1, maxLength: 4_000, pattern: '.*\\S.*' }),
+  tools: Type.Array(AssistantToolName, { minItems: 1, maxItems: 2, uniqueItems: true }),
+}, { additionalProperties: false })
+export type AssistantModelSessionPolicy = Static<typeof AssistantModelSessionPolicy>
+
+/** Bounded request accepted by the policy-free service-owned model-session capability. */
+export const AssistantModelSessionRequest = Type.Object({
+  conversationId: Type.Optional(ConversationId),
+  question: Type.String({ minLength: 1, maxLength: 4_000, pattern: '.*\\S.*' }),
+  policy: AssistantModelSessionPolicy,
+}, { additionalProperties: false })
+export type AssistantModelSessionRequest = Static<typeof AssistantModelSessionRequest>
 
 export const AssistantSource = Type.Object({
   resourceId: ResourceId,

@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto'
 
-import type { AssistantError, AssistantQuestion, AssistantTurn } from '@graphitemd/contracts'
+import type { AssistantError, AssistantModelSessionRequest, AssistantTurn } from '@graphitemd/contracts'
 import { ConversationStore, type ConversationDocument } from './conversation_store.js'
 import { AssistantWorkspaceContext, AssistantWorkspaceContextError } from './workspace_context.js'
 
 export interface AssistantRunRuntime {
   status(): Promise<Readonly<{ connected: boolean; model: string | null }>>
-  answer(input: Readonly<{
+  run(input: Readonly<{
     question: string
+    policy: AssistantModelSessionRequest['policy']
     tools: Readonly<{
       search(query: string): ReturnType<AssistantWorkspaceContext['search']>
       read(resourceId: string): ReturnType<AssistantWorkspaceContext['read']>
@@ -38,7 +39,7 @@ export class AssistantQuestionService {
     now?: () => string
   }>) {}
 
-  async ask(input: AssistantQuestion): Promise<Extract<AssistantTurn, { status: 'completed' }>> {
+  async ask(input: AssistantModelSessionRequest): Promise<Extract<AssistantTurn, { status: 'completed' }>> {
     const question = input.question.trim()
     if (!question || Buffer.byteLength(question, 'utf8') > 4_000) throw new AssistantQuestionError('invalid_input')
     if (this.#inFlight) throw new AssistantQuestionError('question_in_flight')
@@ -56,7 +57,11 @@ export class AssistantQuestionService {
         createdAt: now(), completedAt: null, answer: null, error: null, sources: [],
       }
       await this.dependencies.conversationStore.create(started)
-      const answer = (await this.dependencies.runtime.answer({ question, tools: { search: (query) => context.search(query), read: (resourceId) => context.read(resourceId) } })).trim()
+      const answer = (await this.dependencies.runtime.run({
+        question,
+        policy: input.policy,
+        tools: { search: (query) => context.search(query), read: (resourceId) => context.read(resourceId) },
+      })).trim()
       if (!answer || context.sources().length === 0) throw new AssistantQuestionError('no_relevant_evidence')
       const completed: Extract<AssistantTurn, { status: 'completed' }> = { ...started, status: 'completed', completedAt: now(), answer, sources: [...context.sources()] }
       await this.dependencies.conversationStore.replaceTurn(completed)

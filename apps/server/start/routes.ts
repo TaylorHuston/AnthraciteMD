@@ -19,7 +19,7 @@ import {
 import { PluginRuntimeService } from '../app/plugins/plugin_runtime_service.js'
 import { LocalSearchService, LocalSearchUnavailableError } from '../app/search/local_search_service.js'
 import { LoginAttemptLimiter } from '../app/security/login_attempt_limiter.js'
-import { AssistantOAuthFlowError, AssistantOAuthFlowManager, PiAssistantRuntime, PiRuntimeBoundary } from '../app/assistant/index.js'
+import { AssistantOAuthFlowError, AssistantOAuthFlowManager, PiModelSessionRuntime, PiRuntimeBoundary } from '../app/assistant/index.js'
 import { AssistantQuestionError, AssistantQuestionService } from '../app/assistant/question_service.js'
 import { ConversationStore } from '../app/assistant/conversation_store.js'
 import { AssistantWorkspaceContext } from '../app/assistant/workspace_context.js'
@@ -30,7 +30,11 @@ const search = process.env.GRAPHITEMD_WORKSPACE_ROOT
   ? new LocalSearchService(process.env.GRAPHITEMD_WORKSPACE_ROOT, workspace)
   : undefined
 const plugins = process.env.GRAPHITEMD_WORKSPACE_ROOT
-  ? new PluginRuntimeService(process.env.GRAPHITEMD_WORKSPACE_ROOT, workspace)
+  ? new PluginRuntimeService(process.env.GRAPHITEMD_WORKSPACE_ROOT, workspace, async (request) => {
+    const service = await questionService()
+    if (!service) throw new AssistantQuestionError('workspace_unavailable')
+    return service.ask(request)
+  })
   : undefined
 let pluginsStarted: Promise<void> | undefined
 const loginAttempts = new LoginAttemptLimiter()
@@ -52,7 +56,7 @@ function oauthManager(): Promise<AssistantOAuthFlowManager> {
 async function questionService(): Promise<AssistantQuestionService | undefined> {
   if (!search || !process.env.GRAPHITEMD_WORKSPACE_ROOT) return undefined
   if (!assistantQuestions) {
-    const runtime = new PiAssistantRuntime(await piBoundary(), process.env.GRAPHITEMD_WORKSPACE_ROOT)
+    const runtime = new PiModelSessionRuntime(await piBoundary(), process.env.GRAPHITEMD_WORKSPACE_ROOT)
     assistantQuestions = new AssistantQuestionService({
       runtime,
       context: () => new AssistantWorkspaceContext(workspace, search),
@@ -212,10 +216,12 @@ router.post('/api/v1/assistant/questions', async ({ auth, request, response }) =
   if (typeof question !== 'string' || (conversationId !== undefined && typeof conversationId !== 'string')) {
     return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
   }
-  const service = await questionService()
-  if (!service) return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
+  const runtime = await pluginRuntime()
+  if (!runtime) return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
   try {
-    return await service.ask({ question, ...(conversationId ? { conversationId } : {}) } as AssistantQuestion)
+    const result = await runtime.askAssistant({ question, ...(conversationId ? { conversationId } : {}) } as AssistantQuestion)
+    if (result.kind === 'handled') return result.turn
+    return response.serviceUnavailable({ error: { code: 'provider_unavailable', message: 'The Assistant is unavailable.' } })
   } catch (error) {
     if (error instanceof AssistantQuestionError) {
       return response.badRequest({ error: { code: error.code, message: error.message } })

@@ -23,6 +23,33 @@ async function workspaceRoot(): Promise<string> {
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))))
 
 describe('GMD-003/S1 R2 inspectable enablement', () => {
+  it('GMD-004/S2 R1-S1 dispatches questions only through the active Assistant contribution', async () => {
+    const root = await workspaceRoot()
+    const authority = new ConfiguredWorkspaceAuthority(root)
+    const runModelSession = async (request: { question: string; policy: { prompt: string; tools: readonly string[] } }) => ({
+      turnId: 'turn_alpha' as const,
+      conversationId: 'conv_alpha' as const,
+      status: 'completed' as const,
+      question: request.question,
+      provider: 'openai-codex' as const,
+      model: 'gpt-5.4',
+      createdAt: '2026-07-20T00:00:00.000Z',
+      completedAt: '2026-07-20T00:00:01.000Z',
+      answer: request.policy.prompt.includes('workspace evidence') ? 'Grounded answer.' : '',
+      error: null,
+      sources: [],
+    })
+    const service = new PluginRuntimeService(root, authority, runModelSession)
+    await service.start()
+
+    await expect(service.askAssistant({ question: 'What changed?' })).resolves.toEqual(expect.objectContaining({
+      kind: 'handled',
+      turn: expect.objectContaining({ answer: 'Grounded answer.' }),
+    }))
+    await service.setEnabled('assistant', false)
+    await expect(service.askAssistant({ question: 'What changed?' })).resolves.toEqual({ kind: 'unavailable' })
+  })
+
   it('cold-starts against a valid configured workspace without a prior workspace request', async () => {
     const root = await workspaceRoot()
     const service = new PluginRuntimeService(root, new ConfiguredWorkspaceAuthority(root))
