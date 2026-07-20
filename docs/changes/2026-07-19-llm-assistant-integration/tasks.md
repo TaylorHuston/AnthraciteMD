@@ -249,6 +249,15 @@ status: in_progress
 | Bundle owns policy and Context descriptor | contracts, plugin SDK/host, Assistant bundle, Pi broker, route, browser adapter | `097e180`; focused suites and direct disconnected render. |
 | Pi has no ambient workspace/session configuration | Pi boundary, conversation authority, credentials, source provenance | in-memory Pi managers plus existing canonical conversation tests; live connected check pending. |
 
+## Changed-Surface Reverse Traceability
+
+| Classification | Candidates | Resolution |
+|---|---|---|
+| Epic-owned behavior | model-session contracts/SDK, Assistant bundle, Pi broker, plugin dispatch, Context adapter and tests | `GMD-004/S2` Implemented By and Verified By maps updated with concrete anchors. |
+| Supporting/shared infrastructure | System Status descriptor, Storybook fixture, package/lock metadata, README/changelog | Preserved as generic Context parity, test fixture, or delivery metadata; no orphan removal indicated. |
+| Earlier Epic/shared behavior | workspace/local-search/state migration files and existing styles | Retained as `GMD-002`/prior `GMD-004` support; the user-owned `apps/web/src/styles.css` remains unstaged and unmodified by this Change. |
+| Explicit verification gaps | live connected Pi run, production fake-runtime Assistant route, narrow drawer, browser session-expiry journey | Recorded in `GMD-004/S2` and Manual UI Confirmation; no behavior is claimed verified without evidence. |
+
 ## Blockers / Open Questions
 
 - No planning blockers. The replan retains the accepted brokered bundled-Assistant ownership and classifies the direct core orchestration as implementation drift to remove during Apply.
