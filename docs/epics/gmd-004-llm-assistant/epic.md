@@ -58,7 +58,7 @@ The workspace owner will be able to connect an OpenAI Codex subscription and ask
 | Story | Implementation | Verification | Capability | Last Verified | Notes |
 |---|---|---|---|---|---|
 | S1 | implemented | partial | Connect and disconnect an OpenAI Codex subscription safely. | 2026-07-20 | OAuth/runtime behavior is implemented; live owner authorization remains a gap. |
-| S2 | partial | partial | Ask the read-only Assistant about eligible workspace notes with visible source evidence. | 2026-07-20 | Retrieval, persistence, and the Pi question path are implemented; the bundled Assistant contribution and Context UI remain. |
+| S2 | implemented | partial | Ask the read-only Assistant about eligible workspace notes with visible source evidence. | 2026-07-20 | The bundled Assistant contribution, policy-free Pi broker, and Context UI are implemented; deterministic production-E2E, narrow rendered inspection, and live provider evidence remain. |
 
 ## Stories
 
@@ -147,7 +147,7 @@ None for the accepted Codex onboarding scope.
 
 ### Story S2: Ask The Workspace Through Codex
 
-Implementation: partial
+Implementation: implemented
 Verification: partial
 Created: 2026-07-19
 Modified: 2026-07-20
@@ -242,15 +242,15 @@ The system SHALL provide a responsive, keyboard-accessible Assistant question fl
 
 | Requirement / Scenario | Location / Anchor | Kind | Responsibility |
 |---|---|---|---|
-| S2/R1-S2, S2/R1-S3 | `apps/server/app/assistant/question_service.ts#AssistantQuestionService` | primary | Serializes normalized questions, persists terminal outcomes, requires provider state, and refuses empty, duplicate, unavailable, or ungrounded runs. |
+| S2/R1-S1, S2/R1-S2, S2/R1-S3 | `apps/server/app/assistant/question_service.ts#AssistantQuestionService` and `PiModelSessionRuntime` | primary | Keeps provider status, run serialization, workspace tools, source provenance, and canonical turns service-owned while accepting only the bundle's validated model-session policy. |
+| S2/R1-S1 | `plugins/assistant/src/index.ts` and `apps/server/app/plugins/plugin_runtime_service.ts#askAssistant` | bundled policy / host route | The static bundle owns the grounded prompt, declared search/read list, and single active question handler; authenticated routes only dispatch through that host. |
 | S2/R2-S1, S2/R2-S2, S2/R2-S3 | `apps/server/app/assistant/workspace_context.ts#AssistantWorkspaceContext` | primary | Performs bounded opaque search/read revalidation and derives source evidence only from successful reads. |
 | S2/R3-S1, S2/R3-S2 | `apps/server/app/assistant/conversation_store.ts#ConversationStore` | primary | Writes confined versioned turns atomically and recovers incomplete turns as explicit interrupted failures. |
-| S2/R4 | Not implemented yet. | primary | Responsive Assistant presentation after implementation. |
+| S2/R4 | `apps/web/src/AssistantContext.tsx` and `apps/web/src/App.tsx#contextPanel` | browser adapter | Descriptor-driven Context rendering presents setup, question, busy, answer, source, error, and session-expiry paths without hard-coding a plugin identity. |
 
 #### Implementation Gaps
 
-- `S2/R1-S1`: Pi adapter and authenticated browser path are not implemented yet.
-- `S2/R4`: Not implemented yet.
+None for the accepted read-only Assistant slice.
 
 #### Verified By
 
@@ -260,11 +260,15 @@ The system SHALL provide a responsive, keyboard-accessible Assistant question fl
 | S2/R2-S1 | `packages/workspace/src/index.test.ts` | Canonical `.graphitemd/` state is excluded, a safe legacy vault migrates atomically, and conflicting or symlinked layouts fail closed. | focused automated passing |
 | S2/R3-S1, S2/R3-S2 | `apps/server/app/assistant/conversation_store.test.ts` | Canonical versioned turns persist beneath `.graphitemd/conversations`; malformed and redirected state fails closed; interrupted turns are recovered honestly. | focused automated passing |
 | S2/R1-S2, S2/R1-S3 | `apps/server/app/assistant/question_service.test.ts` | Only brokered tools can produce sources; no-read replies become honest no-evidence failures; disconnected, empty, and concurrent requests are refused. | focused automated passing |
+| S2/R1-S1 | contracts, plugin SDK/Assistant conformance, `plugin_runtime_service.test.ts`, bundled import-boundary suite | The bundle's declared policy reaches the sole active host handler; disabling it removes dispatch; only the production capability SDK may be imported. | focused automated passing |
+| S2/R4-S1, S2/R4-S3 | `apps/web/src/AssistantContext.test.tsx` and `App.test.tsx` | The connected composer retains a prompt while busy, prevents duplicate submit, renders returned service sources, and directs disconnected owners to Settings. | focused automated passing |
+| S2/R4-S1 | direct authenticated Vite/agent-browser Context inspection | The active Assistant descriptor renders beside System Status with a clear disconnected handoff and no console or overlay error. | rendered desktop disconnected state passing |
 
 #### Verification Gaps
 
-- `S2/R1-S1`: Pi adapter and authenticated browser path are not verified yet.
-- `S2/R4-S1`, `S2/R4-S2`, `S2/R4-S3`: Not verified yet.
+- `S2/R1-S1`: A live connected Codex model session and deterministic production fake-runtime route are not verified yet.
+- `S2/R4-S2`: Narrow rendered Context-drawer inspection remains pending.
+- `S2/R4-S3`: Session-expiry rendering is component-covered but not yet verified in an end-to-end browser journey.
 
 #### Story Notes
 

@@ -20,6 +20,7 @@ The foundation monorepo is active. AdonisJS owns the service boundary, React/Vit
 - Host-local full-text search backed by a rebuildable SQLite projection.
 - Responsive browser workbench with opaque resource navigation.
 - Bundled plugin inventory, enablement, capability mediation, and inspectable namespaced state, demonstrated by System Status.
+- A bundled Codex Assistant Context contribution for read-only, workspace-grounded questions with visible service-derived sources after connection.
 
 AI interaction, proposal/grant workflows, community plugins, arbitrary plugin isolation, offline sync, and a dedicated mobile app remain outside this foundation slice.
 
@@ -76,6 +77,7 @@ The current target is a technically capable single owner on a trusted private ne
 - `packages/plugin-sdk`: manifest and lifecycle contracts for every plugin.
 - `packages/plugin-testkit`: headless plugin conformance helpers.
 - `plugins/system-status`: bundled plugin proving the production SDK boundary.
+- `plugins/assistant`: bundled grounded-answer policy and Context contribution; it receives no raw filesystem, credential, process, shell, or network access.
 
 ## Architecture Decisions
 
