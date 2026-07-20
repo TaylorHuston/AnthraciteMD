@@ -5,10 +5,10 @@ status: in_review
 
 ## Resume Here
 
-- Last completed action: The current review remediated the accepted shell feedback, stale E2E path, plugin compatibility/dependency defects, responsive containment, accessibility semantics, and evidence gaps; final full verification is in progress.
-- Next action: Record the immutable review watermark, then complete the documented user terminal, visual/device, and screen-reader confirmation before any integration or closeout.
+- Last completed action: The shell experience rereview is technically ready at implementation commit `357537c`; all automated, security, traceability, artifact, and rendered-browser gates pass.
+- Next action: Complete the documented user terminal, visual/device, and screen-reader confirmation before any integration or closeout.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
-- Expected dirty files: Current UI batch, focused review remediation, and artifact reconciliation until the review commits are created.
+- Expected dirty files: Review/status reconciliation only until the review record is committed.
 - Known blockers: None for technical rereview. Manual terminal, visual/device, and screen-reader confirmation remains pending user and is not claimed by automated evidence.
 
 ## Task Checklist
@@ -120,7 +120,7 @@ status: in_review
 - [x] 9.3 Carry active plugin contributions into mobile Context, align responsive tab semantics, and keep mobile controls touch/safe-area aware.
 - [x] 9.4 Correct fail-closed caret compatibility and dependency lifecycle ordering, including duplicate, activation-failed, cyclic, and disable-cascade cases.
 - [x] 9.5 Update the production E2E owner path for Enter-driven Search and Settings area navigation; add focused modal, settings-keyboard, and mobile-contribution evidence.
-- [ ] 9.6 Run the final root, Storybook, production E2E, dependency, validation, reverse-traceability, rendered-UI, and diff-hygiene gates; record the immutable review watermark.
+- [x] 9.6 Run the final root, Storybook, production E2E, dependency, validation, reverse-traceability, rendered-UI, and diff-hygiene gates; record the immutable review watermark.
 
 ## Implementation Ledger
 
@@ -153,7 +153,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-18 | Consolidated review remediation | Delegated TDD slices plus fresh combined-tree security, coverage/UI, and artifact self-checks | Auth issuance/revocation and bounded limiter; persisted workspace identity/selective ignores/durable rename receipts; workspace/plugin confinement; logout/accessibility/responsive panes; 18 Storybook states; README/CHANGELOG/design/Epics | Blocking credential race and required restart, confinement, throttling, browser, accessibility, responsive, preview, and documentation findings remediated; self-check edge cases folded into the same wave | `949dd77` |
 | 2026-07-19 | Fresh rereview remediation | `/sdd-apply`; delegated TDD; Adonis Session guidance; component and Web Interface Guidelines | Generation-bound sessions; workspace/plugin/search/rename authority; TypeBox contracts/browser adapter; desktop Search; responsive/touch and 30 Storybook states; README/ADR/Epics | Two blocking and seven implementation/artifact findings remediated without expanding scope; trusted bundled-plugin claims now distinguish accidental bypass enforcement from malicious containment | `0ee35bf` |
 | 2026-07-19 | Apply self-check regression wave | Fresh delegated code/security, artifact/traceability, and UI/coverage passes | Plugin cold start/retry; autosave response binding; search state announcements; semantic table rendering; production E2E | Self-check findings reproduced red, remediated, and folded into the final verification union | `0ee35bf` |
-| 2026-07-19 | Accepted shell refinement and rereview remediation | User feedback; Coordinator/49th Floor interaction references; shared Graphite theme; TDD and rendered-UI review | App rail, centered responsive shell, Search, Settings modal, plugin lifecycle, focused component/E2E tests, design and Epic evidence | Current shell direction implemented; stale E2E and fail-open plugin edge cases corrected; desktop/intermediate/mobile rendered states reconciled without expanding product scope | pending review commit |
+| 2026-07-19 | Accepted shell refinement and rereview remediation | User feedback; Coordinator/49th Floor interaction references; shared Graphite theme; TDD and rendered-UI review | App rail, centered responsive shell, Search, Settings modal, plugin lifecycle, focused component/E2E tests, design and Epic evidence | Current shell direction implemented; stale E2E and fail-open plugin edge cases corrected; desktop/intermediate/mobile rendered states reconciled without expanding product scope | `357537c` |
 
 ## Verification Ledger
 
@@ -187,7 +187,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 | 2026-07-19 | Root lint/typecheck/test/build; Storybook 30/30; Playwright 2/2; production dependency audit; diff check | broad, component/accessibility, production E2E, dependency, and hygiene gates | Final combined review remediation plus self-check regressions compile and pass across contracts 6, domain 4, plugin SDK 7, workspace 30, web 44, System Status 1, and server 60 tests. | Passing; existing 812 KB chunk and Node deprecation warnings remain non-blocking follow-up |
 | 2026-07-19 | Per-Epic `sdd-orphan-audit --changed-from develop` | changed-surface reverse-traceability inventory | 113 candidates classify across GMD-001/GMD-002/GMD-003 or shared support; every referenced implementation and verification path resolves. | Passing; zero missing implementation or verification references |
 | 2026-07-19 | Workspace 31 and server 63 focused tests; root lint/typecheck/test/build; Storybook 30/30; Playwright 2/2; production dependency audit | focused authority/security evidence plus broad, component/accessibility, and production E2E gates | Process-lifetime accepted workspace identity remains fail-closed after replacement across direct reopen/refresh, authenticated workspace retrieval, search rebuild, and first plugin startup; replacement roots receive no `.graphite` state. | Passing; manual terminal, visual/device, and screen-reader confirmation remains pending |
-| 2026-07-19 | Shell rereview focused suites and rendered viewport matrix | focused plugin/component evidence plus direct Chromium inspection | Plugin SDK caret/dependency lifecycle, Settings keyboard/modal semantics, mobile Context contribution parity, fixed modal scrolling, and physically centered unobscured content at 1440x900, 1280x800, and 390x844. | Focused tests and rendered inspection passing; final full verification pending |
+| 2026-07-19 | Root lint/typecheck/test/build; Storybook 30/30; Playwright 2/2; production audit; validation/orphan audits; rendered viewport matrix | broad, focused, component/accessibility, deterministic E2E, dependency, traceability, and direct Chromium evidence | 164 automated tests; plugin caret/dependency lifecycle; Settings keyboard/modal semantics; mobile Context parity; fixed modal scrolling; centered unobscured content at 1440x900 and 1280x800; exact-width 390x844 composition. | Passing at `357537c`; 817.20 KB chunk, Storybook React `act`, and Node deprecation warnings remain non-blocking follow-up |
 
 ## Manual Feedback
 
@@ -233,9 +233,9 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
 - ADR status: Four Accepted ADRs remain linked; runtime contracts and the accepted trusted-first-party bundled-plugin boundary are implemented, while untrusted community isolation remains deferred.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
-- `sdd-review` verdict: `ready` against implementation commit `7e74a6ff00e98676f5f9edecfc8b1a4dab64c4ba` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`; manual confirmation remains pending.
+- `sdd-review` verdict: `ready` against implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`; manual confirmation remains pending.
 - Review record: `docs/changes/2026-07-18-foundation-workspace-slice/review.md`.
-- `review.md` findings resolved: Yes in the current review tree; accepted workspace identity remains fail-closed through every formerly reopening path.
+- `review.md` findings resolved: Yes in the immutable implementation commit; accepted workspace identity and plugin lifecycle remain fail-closed, and the current shell passes direct rendered inspection.
 - Planning updates resolved: Yes for the accepted Change scope; manual confirmation and deferred product scope remain explicit.
 - Manual UI confirmation status: pending user; deterministic desktop/narrow browser evidence passes, but user acceptance remains intentionally unclaimed.
 - PR / merge state: No remote, PR, or merge; technical branch readiness passes, but manual confirmation blocks integration and closeout.
