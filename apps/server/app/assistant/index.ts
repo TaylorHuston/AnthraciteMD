@@ -9,8 +9,11 @@ import {
   SessionManager,
   SettingsManager,
   type AgentSession,
+  type AgentSessionEvent,
   type ToolDefinition,
+  defineTool,
 } from '@earendil-works/pi-coding-agent'
+import { Type } from 'typebox'
 import type {
   AssistantError,
   AssistantFlowId,
@@ -190,6 +193,51 @@ export class PiRuntimeBoundary implements PiOAuthRuntime {
     })
     await this.assertProtectedState()
     return { session, sessionFile: sessionManager.getSessionFile() ?? null }
+  }
+
+  async assistantRuntimeStatus(): Promise<Readonly<{ connected: boolean; model: string | null }>> {
+    const provider = await this.providerStatus()
+    const model = this.#modelRegistry.find(OPENAI_CODEX_PROVIDER, DEFAULT_OPENAI_CODEX_MODEL)
+    return { connected: provider.configured && Boolean(model), model: provider.configured && model ? DEFAULT_OPENAI_CODEX_MODEL : null }
+  }
+}
+
+export class PiAssistantRuntime {
+  constructor(private readonly boundary: PiRuntimeBoundary, private readonly workspaceCwd: string) {}
+
+  status() { return this.boundary.assistantRuntimeStatus() }
+
+  async answer(input: Readonly<{
+    question: string
+    tools: Readonly<{ search(query: string): Promise<readonly Readonly<{ resourceId: string; title: string; displayPath: string; snippet: string | null }>[]>; read(resourceId: string): Promise<Readonly<{ text: string }>> }>
+  }>): Promise<string> {
+    const tools: ToolDefinition[] = [
+      defineTool({ name: 'workspace_search', label: 'Search workspace', description: 'Search eligible Markdown notes by question terms.', parameters: Type.Object({ query: Type.String() }), async execute(_id, params) {
+        const results = await input.tools.search(params.query)
+        return { content: [{ type: 'text' as const, text: JSON.stringify(results) }], details: {}, isError: false }
+      } }),
+      defineTool({ name: 'workspace_read', label: 'Read workspace note', description: 'Read one eligible note by opaque resource ID returned from workspace_search.', parameters: Type.Object({ resourceId: Type.String() }), async execute(_id, params) {
+        const note = await input.tools.read(params.resourceId)
+        return { content: [{ type: 'text' as const, text: note.text }], details: {}, isError: false }
+      } }),
+    ]
+    const { session } = await this.boundary.createRestrictedSession({
+      workspaceCwd: this.workspaceCwd,
+      sessionId: `run_${Math.random().toString(36).slice(2)}`,
+      systemPrompt: 'Answer only from the content returned by workspace_search and workspace_read. Use both tools before answering. If the evidence is insufficient, say so plainly. Never claim a source you did not read.',
+      customTools: tools,
+    })
+    let answer = ''
+    const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
+      if (event.type === 'message_update' && event.assistantMessageEvent.type === 'text_delta') answer += event.assistantMessageEvent.delta
+    })
+    try {
+      await session.prompt(input.question, { expandPromptTemplates: false })
+      return answer.trim()
+    } finally {
+      unsubscribe()
+      session.dispose()
+    }
   }
 }
 

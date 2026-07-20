@@ -5,8 +5,8 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: implemented deterministic `GMD-004/S2/R1-S2-S3` question orchestration over brokered retrieval and canonical conversation persistence.
-- Next action: implement the `GMD-004/S2/R1-S1` restricted Pi adapter and authenticated HTTP/browser path.
+- Last completed action: wired the restricted Pi adapter and authenticated question route to the deterministic question orchestration; direct Pi adapter and HTTP fake-runtime characterization remain required.
+- Next action: add the bundled Assistant/Context browser surface and deterministic route/E2E injection evidence.
 - Active branch/ref: `change/llm-assistant-integration` at OAuth phase checkpoint `f5738d7`.
 - Expected dirty files: conversation runtime/tests, restricted run orchestration, authenticated question routes/tests, bundled Assistant plugin, Context UI/test, and this ledger.
 - Known blockers: none for deterministic implementation. A separate owner-completed Codex OAuth is still required for live-provider verification.
@@ -105,6 +105,7 @@ status: in_progress
 | 2026-07-20 | GMD-004/S2 R2 confined context and provenance | main + bounded discovery worker | `apps/server/app/assistant/workspace_context.*`, Assistant error contract, GMD-004 Epic | A service-owned broker limits search/read context, revalidates every opaque resource through workspace authority, avoids UTF-8 replacement output, emits explicit context-limit failure, and records source evidence only after successful reads. | `9d9a551` |
 | 2026-07-20 | GMD-004/S2 R3 canonical conversation record | main | `apps/server/app/assistant/conversation_store.*`, GMD-004 Epic | Confined atomic conversation documents persist normalized turns without provider state. Malformed/redirection state fails closed and unfinished turns recover to explicit interrupted failures. | `61de525` |
 | 2026-07-20 | GMD-004/S2 R1 deterministic question orchestration | main | `apps/server/app/assistant/question_service.*`, GMD-004 Epic | Normalized owner questions have one in-flight slot, a persisted in-progress/terminal record, explicit unavailable/invalid/no-evidence outcomes, and sources only from brokered reads. Pi/HTTP/UI adapters remain the next phase. | `d6edd59` |
+| 2026-07-20 | GMD-004/S2 R1 Pi/HTTP adapter | main + Context7 Pi SDK documentation | Pi adapter, assistant question route, server dependency graph | The production adapter exposes only custom `workspace_search` and `workspace_read` tools to a no-builtins Pi session and routes authenticated normalized questions through the service. Direct adapter/HTTP fake-runtime evidence remains pending. | pending |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |

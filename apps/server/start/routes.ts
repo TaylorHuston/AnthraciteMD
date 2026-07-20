@@ -1,5 +1,5 @@
 import router from '@adonisjs/core/services/router'
-import { serviceDescriptor } from '@graphitemd/contracts'
+import { serviceDescriptor, type AssistantQuestion } from '@graphitemd/contracts'
 import {
   ConfiguredWorkspaceAuthority,
   WorkspaceInvalidMutationError,
@@ -19,7 +19,10 @@ import {
 import { PluginRuntimeService } from '../app/plugins/plugin_runtime_service.js'
 import { LocalSearchService, LocalSearchUnavailableError } from '../app/search/local_search_service.js'
 import { LoginAttemptLimiter } from '../app/security/login_attempt_limiter.js'
-import { AssistantOAuthFlowError, AssistantOAuthFlowManager, PiRuntimeBoundary } from '../app/assistant/index.js'
+import { AssistantOAuthFlowError, AssistantOAuthFlowManager, PiAssistantRuntime, PiRuntimeBoundary } from '../app/assistant/index.js'
+import { AssistantQuestionError, AssistantQuestionService } from '../app/assistant/question_service.js'
+import { ConversationStore } from '../app/assistant/conversation_store.js'
+import { AssistantWorkspaceContext } from '../app/assistant/workspace_context.js'
 
 const ownerSetup = new OwnerSetupService(resolveSecurityStateDirectory())
 const workspace = new ConfiguredWorkspaceAuthority(process.env.GRAPHITEMD_WORKSPACE_ROOT)
@@ -32,11 +35,31 @@ const plugins = process.env.GRAPHITEMD_WORKSPACE_ROOT
 let pluginsStarted: Promise<void> | undefined
 const loginAttempts = new LoginAttemptLimiter()
 let assistantOAuth: Promise<AssistantOAuthFlowManager> | undefined
+let assistantBoundary: Promise<PiRuntimeBoundary> | undefined
+let assistantQuestions: AssistantQuestionService | undefined
+
+function piBoundary(): Promise<PiRuntimeBoundary> {
+  assistantBoundary ??= PiRuntimeBoundary.create(resolveSecurityStateDirectory())
+  return assistantBoundary
+}
 
 function oauthManager(): Promise<AssistantOAuthFlowManager> {
-  assistantOAuth ??= PiRuntimeBoundary.create(resolveSecurityStateDirectory())
+  assistantOAuth ??= piBoundary()
     .then((runtime) => new AssistantOAuthFlowManager(runtime))
   return assistantOAuth
+}
+
+async function questionService(): Promise<AssistantQuestionService | undefined> {
+  if (!search || !process.env.GRAPHITEMD_WORKSPACE_ROOT) return undefined
+  if (!assistantQuestions) {
+    const runtime = new PiAssistantRuntime(await piBoundary(), process.env.GRAPHITEMD_WORKSPACE_ROOT)
+    assistantQuestions = new AssistantQuestionService({
+      runtime,
+      context: () => new AssistantWorkspaceContext(workspace, search),
+      conversationStore: new ConversationStore(process.env.GRAPHITEMD_WORKSPACE_ROOT!, workspace),
+    })
+  }
+  return assistantQuestions
 }
 
 async function requireOwner(auth: { use: (guard: 'web') => { authenticate: () => Promise<unknown> } }, response: { unauthorized: (body: unknown) => unknown }): Promise<boolean> {
@@ -170,6 +193,25 @@ router.post('/api/v1/assistant/disconnect', async ({ auth, response }) => {
     return await (await oauthManager()).disconnect()
   } catch (error) {
     return assistantOAuthErrorResponse(error, response)
+  }
+})
+
+router.post('/api/v1/assistant/questions', async ({ auth, request, response }) => {
+  if (!(await requireOwner(auth, response))) return
+  const question = request.input('question')
+  const conversationId = request.input('conversationId')
+  if (typeof question !== 'string' || (conversationId !== undefined && typeof conversationId !== 'string')) {
+    return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
+  }
+  const service = await questionService()
+  if (!service) return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
+  try {
+    return await service.ask({ question, ...(conversationId ? { conversationId } : {}) } as AssistantQuestion)
+  } catch (error) {
+    if (error instanceof AssistantQuestionError) {
+      return response.badRequest({ error: { code: error.code, message: error.message } })
+    }
+    return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
   }
 })
 

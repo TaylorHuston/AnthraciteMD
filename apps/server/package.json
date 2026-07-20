@@ -32,7 +32,8 @@
     "@graphitemd/workspace": "workspace:*",
     "better-sqlite3": "^12.11.1",
     "luxon": "^3.7.2",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "typebox": "^1.3.6"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^8.4.0",

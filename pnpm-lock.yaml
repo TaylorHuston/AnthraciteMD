@@ -85,6 +85,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      typebox:
+        specifier: ^1.3.6
+        version: 1.3.6
     devDependencies:
       '@adonisjs/assembler':
         specifier: ^8.4.0
