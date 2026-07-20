@@ -234,7 +234,7 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
 - ADR status: Four Accepted ADRs remain linked; runtime contracts and the accepted trusted-first-party bundled-plugin boundary are implemented, while untrusted community isolation remains deferred.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
-- `sdd-review` verdict: `ready` against implementation commit `08490ea4d7c07ac3839cc9c36bfaff1cb90639a5` for the open `develop` to `main` release PR; the user previously accepted the remaining manual gaps.
+- `sdd-review` verdict: `ready` against implementation commit `204f03b10acc7b1ceb4a02997d599bfe5af66185` for the open `develop` to `main` release PR; the user previously accepted the remaining manual gaps.
 - Review record: `docs/changes/closed/2026-07-18-foundation-workspace-slice/review.md`.
 - `review.md` findings resolved: Yes in the immutable implementation commit; accepted workspace identity and plugin lifecycle remain fail-closed, and the current shell passes direct rendered inspection.
 - Planning updates resolved: Yes for the accepted Change scope; accepted manual gaps and deferred product scope remain explicit.

@@ -4,7 +4,7 @@
 
 ready
 
-The current implementation is technically ready. The shell refinement, production owner path, plugin lifecycle, responsive containment, accessibility semantics, traceability, artifact truth, and accepted PR remediation are reconciled at immutable implementation commit `08490ea4d7c07ac3839cc9c36bfaff1cb90639a5`. On 2026-07-19 the user explicitly accepted the remaining terminal, real-device, and screen-reader confirmation as documented gaps rather than completed evidence.
+The current implementation is technically ready. The shell refinement, production owner path, plugin lifecycle, responsive containment, accessibility semantics, traceability, artifact truth, and accepted PR remediation are reconciled at immutable implementation commit `204f03b10acc7b1ceb4a02997d599bfe5af66185`. On 2026-07-19 the user explicitly accepted the remaining terminal, real-device, and screen-reader confirmation as documented gaps rather than completed evidence.
 
 ## Gate Scorecard
 
@@ -12,9 +12,9 @@ The current implementation is technically ready. The shell refinement, productio
 |---|---|---|
 | Artifact truth | pass | Design, tasks, affected Epics, Idea routing, README, changelog, PRD, and ADRs agree with the current foundation scope and shell. |
 | Cold navigation | pass | `AppRail`, current Settings ownership, search flow, and plugin contribution paths are mapped and directly reachable. |
-| Source-vs-target code review | pass | The source branch cleanly applies over `develop`; code/security findings were reproduced, fixed, and covered. |
+| Source-vs-target code review | pass | `develop` cleanly applies over `main`; code/security findings were reproduced, fixed, and covered. |
 | Reverse traceability | pass | 114 changed candidates; zero missing implementation or verification references, with cross-Epic/support surfaces classified. |
-| Verification | pass | Root gates, 164 automated tests, Storybook 30/30, Playwright 2/2, audit, and diff hygiene pass. |
+| Verification | pass | Root gates, 180 automated tests, Storybook 30/30, Playwright 2/2, audit, and diff hygiene pass. |
 | Risk-shaped evidence | pass | Caret bounds, duplicate/failed/cyclic dependencies, disable cascades, modal cleanup, responsive tabs, Context parity, and mobile overflow have focused proof. |
 | Security and data safety | pass | No new auth, origin/CSRF, secret, filesystem-authority, or dependency vulnerability finding; fail-closed workspace identity remains intact. |
 | Rendered UI verification | pass | Direct Chromium inspection passes at 1440x900, 1280x800, and 390x844, including pane containment, fixed modal scrolling, and mobile drawers. |
@@ -53,14 +53,14 @@ None.
 |---|---|---|---|
 | `pnpm lint` | broad supporting | pass | All eight applicable workspace projects satisfy lint. |
 | `pnpm typecheck` | broad supporting | pass | All TypeScript project boundaries compile without type errors. |
-| `pnpm test` | focused/component/integration | 164 pass | Contracts 6, domain 4, plugin SDK 12, workspace 31, web 47, System Status 1, and server 63 pass. |
+| `pnpm test` | focused/component/integration | 180 pass | Contracts 6, domain 4, plugin SDK 12, workspace 34, web 55, System Status 1, and server 68 pass. |
 | `pnpm build` | production build | pass | Web and Adonis production artifacts build; the known 817.20 KB chunk and Node deprecation warnings are non-blocking. |
 | `pnpm test:storybook` | component/accessibility | 30/30 pass | Accepted auth, shell, editor, search, Settings, and plugin states render with configured accessibility checks; known React `act` warning remains. |
 | `pnpm test:e2e` | deterministic production E2E | 2/2 pass | Same-origin artifact/API confinement and the full owner path pass on desktop and 390x844, including search, edit/conflict, rename, plugin control, password revocation, drawers, and no page overflow. |
 | `pnpm audit --prod --audit-level=high` | dependency security | pass | No known production dependency vulnerability is reported. |
 | Change and GMD-001/002/003 `sdd validate` | artifact validation | pass, zero findings | Canonical SDD structure and forward references are current. |
-| Per-Epic orphan audits from `develop` | reverse traceability | pass | 114 candidates; zero missing `Implemented By` or `Verified By` references; `AppRail` resolves under GMD-002. |
-| `git diff --check`; `git merge-tree --write-tree develop HEAD` | hygiene/integration | pass | No whitespace defects and no target conflict. |
+| Per-Epic orphan audits from `main` | reverse traceability | pass | 114 candidates; zero missing `Implemented By` or `Verified By` references; `AppRail` resolves under GMD-002. |
+| `git diff --check main...develop`; `git merge-tree --write-tree main develop` | hygiene/integration | pass | No whitespace defects and no target conflict. |
 
 ## Rendered UI Matrix
 
@@ -75,13 +75,13 @@ None.
 ## Review Bundle
 
 - Source branch/ref: `develop`
-- Reviewed implementation commit: `08490ea4d7c07ac3839cc9c36bfaff1cb90639a5`
+- Reviewed implementation commit: `204f03b10acc7b1ceb4a02997d599bfe5af66185`
 - Target branch/ref: `main`
 - Merge base: `15901773ce4565c4facfc7c50d1835463ef808c8`
 - Target-only commits: 0
 - Candidate files: 114 from `develop`
 - Conflict check: clean
-- Branch policy: correct `change/*` source targeting non-production `develop`
+- Branch policy: release-prepared `develop` source targeting stable `main`
 - Remote/PR/merge/closeout: release PR [#1](https://github.com/TaylorHuston/GraphiteMD/pull/1) is open; provider merge was not performed and still requires explicit user approval.
 
 ## Reverse Traceability
@@ -116,3 +116,5 @@ None.
 - 2026-07-19: Post-review shell refinements invalidated the prior watermark; E2E, plugin lifecycle, responsive containment, accessibility, and artifact findings opened.
 - 2026-07-19: Consolidated shell/refinement remediation committed as `357537c`; all gates and direct rendered inspection pass. Verdict `ready`; manual acceptance remains pending.
 - 2026-07-19: PR feedback remediation through `08490ea` corrected search failure semantics, live inventory refresh, request sizing, filesystem confinement, CRLF preservation/frontmatter parsing, password-change throttling, and guarded empty-route history. Fresh artifact, code/security, and UI regression passes are clean; verdict `ready`, with the previously accepted manual gaps unchanged.
+- 2026-07-19: Late exact-head feedback remediation through `27b35ce` restored failed/conflicted rename recovery, made receipt provisioning platform-neutral, serialized production builds, kept committed retries bound across source-path reuse, and treated stale search inventory as recoverable. Fresh artifact, code/security, and UI regression passes are clean; verdict `ready`.
+- 2026-07-19: Immediate scheduled-save conflict review identified a transition-reason race; `204f03b` preserves the post-flush conflict reason and reloads authoritative source before rename. Focused autosave/App evidence and final regression review pass.
