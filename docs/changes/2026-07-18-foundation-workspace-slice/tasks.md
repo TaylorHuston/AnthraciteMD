@@ -5,11 +5,11 @@ status: in_review
 
 ## Resume Here
 
-- Last completed action: The shell experience rereview is technically ready at implementation commit `357537c`; all automated, security, traceability, artifact, and rendered-browser gates pass.
-- Next action: Complete the documented user terminal, visual/device, and screen-reader confirmation before any integration or closeout.
+- Last completed action: The user explicitly authorized merge-and-close and accepted the remaining terminal, real-device, and screen-reader confirmation as a documented gap.
+- Next action: Close this Change, merge the reviewed source into `develop`, and reconcile the final merge record.
 - Active branch/ref: `change/foundation-workspace-slice` from `develop`; baseline commit `1590177` exists on `main` and `develop`.
 - Expected dirty files: Review/status reconciliation only until the review record is committed.
-- Known blockers: None for technical rereview. Manual terminal, visual/device, and screen-reader confirmation remains pending user and is not claimed by automated evidence.
+- Known blockers: None. Manual terminal, real-device, and screen-reader confirmation is an accepted gap, not claimed as completed evidence.
 
 ## Task Checklist
 
@@ -96,11 +96,11 @@ status: in_review
 - [x] 7.1 Update README, architecture, testing, security/deployment guidance, and `CHANGELOG.md` with current implemented behavior only.
 - [x] 7.2 Run `/sdd-review` as the independent local integration gate for Story truth, source reuse, tests, security, docs, ADRs, and branch readiness.
 - [x] 7.3 Record each review outcome in `review.md` and remediate its code/artifact findings; historical findings remain in the review log and manual acceptance remains explicitly pending.
-- [ ] 7.4 Walk the user through the required disposable-workspace desktop/mobile confirmation and record `user confirmed` or `accepted gap`.
+- [x] 7.4 Record the user-authorized `accepted gap` for the remaining disposable-workspace terminal, real-device, and screen-reader confirmation.
 - [x] 7.5 Ensure proposal/design/tasks and all Epics no longer claim completed remediation behavior is unimplemented, unverified, or pending after the fresh finding set is resolved.
 - [x] 7.6 Confirm current Change status, branch/ref, review record, manual confirmation, release communication, and PR/merge state agree.
 - [x] 7.7 Return the implementation-complete Change to `in_review` only after the fresh finding set is remediated and self-checked; manual acceptance may remain open.
-- [ ] 7.8 Commit, push, open a PR, merge, or close only after the repository policy and explicit user authorization permit each operation.
+- [x] 7.8 Commit, merge locally into `develop`, and close under the user's explicit merge-and-close authorization; no push, PR, deployment, or branch deletion is authorized or required.
 
 ### 8. 2026-07-19 Review Remediation
 
@@ -208,7 +208,8 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Manual UI Confirmation
 
-- Status: pending user
+- Status: accepted gap
+- Acceptance: On 2026-07-19 the user explicitly requested merge-and-close after the clean review. This accepts the remaining host-terminal, real-device safe-area/software-keyboard, and VoiceOver checks as gaps; it does not claim those checks were performed.
 - App URL / route: `http://127.0.0.1:3333/` with the disposable setup below running.
 - Required setup or test data: From the repository root, create a disposable directory with `mktemp -d`, record the printed path, and create `workspace/Projects` plus `state` beneath it. Add `Welcome.md` and `Projects/Plan.md` containing non-sensitive test Markdown. Export absolute `GRAPHITEMD_WORKSPACE_ROOT` and `GRAPHITEMD_STATE_DIR` paths, `GRAPHITEMD_ALLOWED_ORIGINS=http://127.0.0.1:3333`, and a newly generated throwaway `APP_KEY` of at least 32 characters.
 - Host setup: Run `pnpm --filter @graphitemd/server exec node ace owner:setup`; confirm both password prompts mask input and no credential/hash is printed. Run `pnpm build && pnpm start`, keeping the terminal open. After browser testing, stop the service before running `pnpm --filter @graphitemd/server exec node ace owner:reset`; confirm its password prompts are masked, restart the service, and verify the prior browser session and credential are rejected.
@@ -225,19 +226,19 @@ Record one row per meaningful transplant or Requirement slice. Include both the 
 
 ## Closeout
 
-- Change status: in_review; technical verdict `ready`, with required manual confirmation pending user.
+- Change status: in_review; technical verdict `ready`; remaining manual confirmation is an accepted gap under explicit merge-and-close authorization.
 - Epic files updated: GMD-001, GMD-002, and GMD-003 describe the remediated implementation and evidence truth.
 - Story labels/references and Requirement/Scenario IDs current: Yes for planned scope.
 - Implemented By maps current: Yes; new auth, workspace, plugin persistence, and browser owners have stable code anchors.
-- Scenario-mapped Verified By maps current: Yes for automated evidence; manual terminal, visual/device, and screen-reader confirmation remains an explicit gap.
+- Scenario-mapped Verified By maps current: Yes for automated evidence; manual terminal, real-device, and screen-reader confirmation remains an accepted explicit gap.
 - Superseded earlier Epic truth reconciled: Not applicable; spike Epics remain reference truth in their own repositories.
 - ADR status: Four Accepted ADRs remain linked; runtime contracts and the accepted trusted-first-party bundled-plugin boundary are implemented, while untrusted community isolation remains deferred.
 - Release communication current: README and public-safe `CHANGELOG.md` describe the implemented foundation and operator boundary.
-- `sdd-review` verdict: `ready` against implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`; manual confirmation remains pending.
+- `sdd-review` verdict: `ready` against implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a` and target `develop@15901773ce4565c4facfc7c50d1835463ef808c8`; the user accepted remaining manual gaps when authorizing merge-and-close.
 - Review record: `docs/changes/2026-07-18-foundation-workspace-slice/review.md`.
 - `review.md` findings resolved: Yes in the immutable implementation commit; accepted workspace identity and plugin lifecycle remain fail-closed, and the current shell passes direct rendered inspection.
-- Planning updates resolved: Yes for the accepted Change scope; manual confirmation and deferred product scope remain explicit.
-- Manual UI confirmation status: pending user; deterministic desktop/narrow browser evidence passes, but user acceptance remains intentionally unclaimed.
-- PR / merge state: No remote, PR, or merge; technical branch readiness passes, but manual confirmation blocks integration and closeout.
+- Planning updates resolved: Yes for the accepted Change scope; accepted manual gaps and deferred product scope remain explicit.
+- Manual UI confirmation status: accepted gap; deterministic desktop/narrow browser evidence passes, while terminal, real-device, and screen-reader checks remain unperformed.
+- PR / merge state: Local merge into `develop` and Change closeout explicitly authorized on 2026-07-19; pending execution. No remote, PR, push, deployment, or branch deletion.
 - Deferred scope accepted: Recorded in proposal/design/Epics.
 - Change moved to `docs/changes/closed/`: No; active repository Change.

@@ -4,7 +4,7 @@
 
 ready
 
-The current implementation is technically ready for user acceptance. The shell refinement, production owner path, plugin lifecycle, responsive containment, accessibility semantics, traceability, and artifact truth are reconciled at immutable implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a`. Manual terminal, real-device, and screen-reader confirmation remains `pending user` and still blocks integration/closeout.
+The current implementation is technically ready. The shell refinement, production owner path, plugin lifecycle, responsive containment, accessibility semantics, traceability, and artifact truth are reconciled at immutable implementation commit `357537cd463f2e56f3b1fad4fe198ffd1d73d35a`. On 2026-07-19 the user explicitly authorized merge-and-close, accepting the remaining terminal, real-device, and screen-reader confirmation as a documented gap rather than completed evidence.
 
 ## Gate Scorecard
 
@@ -18,9 +18,9 @@ The current implementation is technically ready for user acceptance. The shell r
 | Risk-shaped evidence | pass | Caret bounds, duplicate/failed/cyclic dependencies, disable cascades, modal cleanup, responsive tabs, Context parity, and mobile overflow have focused proof. |
 | Security and data safety | pass | No new auth, origin/CSRF, secret, filesystem-authority, or dependency vulnerability finding; fail-closed workspace identity remains intact. |
 | Rendered UI verification | pass | Direct Chromium inspection passes at 1440x900, 1280x800, and 390x844, including pane containment, fixed modal scrolling, and mobile drawers. |
-| Manual acceptance | pass, pending user | The current walkthrough is complete; user confirmation is intentionally unclaimed. |
+| Manual acceptance | accepted gap | The walkthrough is complete; terminal, real-device, and screen-reader checks remain unperformed under explicit merge-and-close acceptance. |
 | Supporting truth | pass | Public and private supporting artifacts describe the same lifecycle, repository mapping, and remaining manual gate. |
-| Integration readiness | pass with hold | Branch/target/conflict checks pass; manual acceptance and explicit integration authorization remain required. |
+| Integration readiness | pass | Branch/target/conflict checks pass and the user explicitly authorized local merge-and-close. |
 
 ## Findings
 
@@ -35,7 +35,7 @@ None.
 ### SUGGESTION
 
 - Track the existing 817.20 KB initial browser chunk, Storybook React `act` warning, and Node `module.register()` deprecation outside this correctness gate.
-- Real iPhone safe-area/software-keyboard behavior and VoiceOver announcement order remain part of the user acceptance walkthrough.
+- Real iPhone safe-area/software-keyboard behavior and VoiceOver announcement order remain accepted verification gaps.
 
 ## Resolved Findings
 
@@ -94,18 +94,18 @@ None.
 
 ## Manual Acceptance
 
-- Status: `pending user`
+- Status: `accepted gap`
 - App: `http://127.0.0.1:3333/`
 - Disposable demo password: `testpassword`
 - Walkthrough owner: `tasks.md` Manual UI Confirmation
-- Required before integration/closeout: host terminal masking/reset, user desktop/mobile acceptance, real-device safe-area/software-keyboard comfort, and VoiceOver announcement order
+- Accepted gap: host terminal masking/reset, real-device safe-area/software-keyboard comfort, and VoiceOver announcement order were not performed before the user authorized merge-and-close
 
 ## PR / Merge Readiness
 
 - Technical branch readiness: pass
 - PR status: none; no remote exists and routine local integration does not inherently require a PR
-- Merge status: held for required user acceptance and explicit integration authorization
-- Closeout status: not eligible until manual acceptance is recorded
+- Merge status: explicitly authorized for local integration into `develop`
+- Closeout status: explicitly authorized; remaining manual checks are accepted gaps
 
 ## Review Log
 
