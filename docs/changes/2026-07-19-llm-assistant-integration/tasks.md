@@ -5,10 +5,10 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: implemented the machine-local Pi/Codex OAuth boundary, authenticated normalized HTTP adapter, and Settings surface with deterministic provider-flow and access-control evidence.
-- Next action: implement `GMD-004/S2/R1-R3`: brokered retrieval, restricted Pi question loop, source provenance, and canonical conversation persistence.
+- Last completed action: implemented `GMD-004/S2/R2` service-side brokered retrieval, context limits, UTF-8-safe truncation, and source provenance.
+- Next action: implement `GMD-004/S2/R3` canonical conversation persistence, then connect it to the restricted Pi question loop.
 - Active branch/ref: `change/llm-assistant-integration` at OAuth phase checkpoint `f5738d7`.
-- Expected dirty files: retrieval/conversation runtime, authenticated question routes/tests, bundled Assistant plugin, Context UI/test, and this ledger.
+- Expected dirty files: conversation runtime/tests, restricted run orchestration, authenticated question routes/tests, bundled Assistant plugin, Context UI/test, and this ledger.
 - Known blockers: none for deterministic implementation. A separate owner-completed Codex OAuth is still required for live-provider verification.
 
 ## Task Checklist
@@ -55,9 +55,9 @@ status: in_progress
   - [ ] `R1-S2`: require an honest insufficient-evidence result when retrieval does not support an answer.
   - [ ] `R1-S3`: fail specifically for disconnected provider, missing model, unavailable workspace, empty prompt, and duplicate in-flight work.
 - [ ] 4.5 Implement `GMD-004/S2/R2 Confined Context And Source Provenance`.
-  - [ ] `R2-S1`: revalidate eligible opaque resources and deny internal/excluded/symlinked/unsupported/oversized/stale/replaced-root content before provider context.
-  - [ ] `R2-S2`: enforce deterministic search/read/turn budgets and explicit truncation.
-  - [ ] `R2-S3`: derive source evidence only from successful brokered reads and never from model citation text.
+  - [x] `R2-S1`: revalidate eligible opaque resources and deny internal/excluded/symlinked/unsupported/oversized/stale/replaced-root content before provider context.
+  - [x] `R2-S2`: enforce deterministic search/read/turn budgets and explicit truncation.
+  - [x] `R2-S3`: derive source evidence only from successful brokered reads and never from model citation text.
 - [ ] 4.6 Implement `GMD-004/S2/R3 Inspectable Conversation Record`.
   - [ ] `R3-S1`: atomically store versioned normalized turns beneath `.graphite/conversations/` without credentials or host paths.
   - [ ] `R3-S2`: reconcile interrupted turns honestly and fail closed on malformed/partial state.
@@ -102,6 +102,7 @@ status: in_progress
 |---|---|---|---|---|---|
 | 2026-07-19 | Enabling contracts and capability facade | main + bounded discovery worker; Context7 Pi API check and Coordinator-local `0.80.6` reference | `packages/contracts`, `packages/plugin-sdk` | Failing-first contract coverage followed by runtime-validated sanitized provider/OAuth/question/turn/source schemas and a declared service-owned Assistant capability facade. No Pi, OAuth, routes, manifest, retrieval, persistence, or UI behavior yet. | `452a781` |
 | 2026-07-19 | GMD-004/S1 OAuth boundary and Settings controls | main | `apps/server/app/assistant`, authenticated assistant routes/tests, Settings UI, contracts, Pi package lock | Locked Pi's compatible `0.80.6` adapter graph; credentials and session scratch remain machine-local. Deterministic tests cover flow conflict/cancel/retry/failure, transient device-code instructions, credential permissions, normalized owner provider state, and unauthenticated route rejection. The Settings tab polls only normalized flow state and never receives credentials. Live OAuth remains an external verification gap. | `f5738d7` |
+| 2026-07-20 | GMD-004/S2 R2 confined context and provenance | main + bounded discovery worker | `apps/server/app/assistant/workspace_context.*`, Assistant error contract, GMD-004 Epic | A service-owned broker limits search/read context, revalidates every opaque resource through workspace authority, avoids UTF-8 replacement output, emits explicit context-limit failure, and records source evidence only after successful reads. | pending |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
@@ -115,6 +116,7 @@ status: in_progress
 | YYYY-MM-DD | Assistant focused suites | focused automated test | GMD-004/S1-S2 deterministic behavior and risky boundaries | pending |
 | 2026-07-19 | `pnpm --filter @graphitemd/contracts test`; `pnpm --filter @graphitemd/plugin-sdk test`; package lints/typechecks; server bundled import-boundary suite | focused automated test / supporting gate | Sanitized Assistant contracts reject token-bearing or malformed terminal payloads; SDK operations require declared capabilities and validate replies before plugins can consume them; the existing bundled import boundary remains green. | passing; enables later Story evidence but does not verify a GMD-004 Scenario alone |
 | 2026-07-19 | contracts/plugin SDK suites; server OAuth and authenticated HTTP suites; web Settings suite; package lint/typecheck | focused automated test | S1 deterministic flow states, protected state permissions, normalized owner-only service responses, unauthenticated mutation rejection, and accessible three-tab Settings navigation. | passing; live provider path remains pending owner OAuth |
+| 2026-07-20 | `pnpm --filter @graphitemd/server test -- workspace_context.test.ts`; server typecheck/lint; contracts and plugin SDK suites | focused automated test | `GMD-004/S2/R2-S1-S3`: existing workspace authority is rechecked at brokered reads; `.graphite`, unknown and symlinked content stay out; context bounds are UTF-8 safe and source provenance follows successful reads only. | passing |
 | YYYY-MM-DD | Production fake-provider browser journey | deterministic E2E | Connect, ask, brokered read, service-derived sources, persistence, disconnect, desktop/mobile continuity | pending |
 | YYYY-MM-DD | Rendered Context/Settings matrix | rendered UI verification | GMD-004/S2 R4 responsive states, interaction, accessibility, and visual containment | pending |
 | YYYY-MM-DD | Live Codex note-grounding playtest | live-provider playtest | Real OAuth/model can answer from a uniquely identifiable note with matching source provenance | pending owner authorization |
@@ -138,6 +140,25 @@ status: in_progress
 |---|---|---|---|---|---|---|
 | YYYY-MM-DD | TBD | experience refinement / experience defect / accessibility correction / responsive correction | Context / Settings | Preserve read-only connect-and-ask behavior and source provenance. | design.md / tasks.md | `/sdd-apply` TBD |
 | 2026-07-19 | Pi `0.80.10` removed the programmatic `AuthStorage` export used by the accepted service adapter, while the `0.80.6` package and its matching internal packages expose the characterized API. | technical constraint | Pi runtime adapter | Preserve the accepted `0.80.x` dependency range and service boundary; lock `0.80.6` with workspace overrides until a separately characterized upgrade. | design.md / tasks.md | `/sdd-apply` GMD-004/S2 |
+| 2026-07-20 | Context exhaustion needs a distinct normalized result so it is not misreported as a workspace outage. | technical constraint | Assistant error contract | Add `context_limit`; retain `workspace_unavailable` only for authority/search availability failures. | contracts / tasks.md | `/sdd-apply` GMD-004/S2 R3 |
+
+## Implementation Risk And Confirmation Matrix
+
+| Risk / Boundary | Confirmation | Evidence / Status |
+|---|---|---|
+| Opaque workspace authority, root replacement, symlinks, internal state | Every provider-bound read re-enters `ConfiguredWorkspaceAuthority.readNote`; no search snippet is model context. | `workspace_context.test.ts`; passing |
+| Byte/context exhaustion and malformed UTF-8 | Per-source and total byte limits preserve valid text; exhaustion is explicit. | `workspace_context.test.ts`; passing |
+| Provenance forgery | Sources derive only from brokered successful reads, never model-authored text. | `workspace_context.test.ts`; passing |
+| Canonical conversation durability | Atomic, confined versioned record plus interruption recovery. | pending `S2/R3` |
+| Provider/tool confinement | Pi has exactly brokered search/read custom tools and no ambient built-ins/resources. | pending `S2/R1` adapter characterization |
+
+## Verification Environment
+
+| Environment | Purpose | Readiness |
+|---|---|---|
+| Temporary filesystem workspace | Authority, boundary, persistence, and recovery tests. | available; retrieval suite passing |
+| Deterministic injected Pi runtime | Production-path question, provenance, and conversation E2E. | pending implementation |
+| Owner Codex subscription | Live OAuth/model grounding playtest. | pending owner interaction after deterministic path |
 
 ## Manual UI Confirmation
 

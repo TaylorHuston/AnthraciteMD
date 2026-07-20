@@ -140,6 +140,8 @@ export const AssistantError = Type.Object({
     Type.Literal('workspace_unavailable'),
     Type.Literal('question_in_flight'),
     Type.Literal('no_relevant_evidence'),
+    Type.Literal('context_limit'),
+    Type.Literal('interrupted'),
     Type.Literal('cancelled'),
   ]),
   message: Type.String({ minLength: 1 }),

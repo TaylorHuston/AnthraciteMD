@@ -223,6 +223,8 @@ function error(code: AssistantError['code'], retryable: boolean): AssistantError
     workspace_unavailable: 'The workspace is unavailable.',
     question_in_flight: 'An Assistant question is already in progress.',
     no_relevant_evidence: 'No relevant workspace evidence is available.',
+    context_limit: 'The available workspace evidence exceeded the configured context limit.',
+    interrupted: 'The Assistant request was interrupted before it completed.',
     cancelled: 'Codex authorization was cancelled.',
   }
   return { code, message: messages[code], retryable }

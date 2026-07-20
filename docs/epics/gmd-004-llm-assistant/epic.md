@@ -58,14 +58,14 @@ The workspace owner will be able to connect an OpenAI Codex subscription and ask
 | Story | Implementation | Verification | Capability | Last Verified | Notes |
 |---|---|---|---|---|---|
 | S1 | not implemented | unverified | Connect and disconnect an OpenAI Codex subscription safely. |  | Provider onboarding prerequisite. |
-| S2 | not implemented | unverified | Ask the read-only Assistant about eligible workspace notes with visible source evidence. |  | First end-to-end LLM proof. |
+| S2 | partial | partial | Ask the read-only Assistant about eligible workspace notes with visible source evidence. | 2026-07-20 | Retrieval confinement and provenance are implemented; the run loop, persistence, plugin, and Context UI remain. |
 
 ## Stories
 
 ### Story S1: Connect OpenAI Codex
 
-Implementation: not implemented
-Verification: unverified
+Implementation: partial
+Verification: partial
 Created: 2026-07-19
 Modified: 2026-07-19
 Last verified:
@@ -237,14 +237,13 @@ The system SHALL provide a responsive, keyboard-accessible Assistant question fl
 | Requirement / Scenario | Location / Anchor | Kind | Responsibility |
 |---|---|---|---|
 | S2/R1 | Not implemented yet. | primary | Read-only Assistant run behavior after implementation. |
-| S2/R2 | Not implemented yet. | primary | Context confinement and provenance after implementation. |
+| S2/R2-S1, S2/R2-S2, S2/R2-S3 | `apps/server/app/assistant/workspace_context.ts#AssistantWorkspaceContext` | primary | Performs bounded opaque search/read revalidation and derives source evidence only from successful reads. |
 | S2/R3 | Not implemented yet. | primary | Canonical conversation persistence after implementation. |
 | S2/R4 | Not implemented yet. | primary | Responsive Assistant presentation after implementation. |
 
 #### Implementation Gaps
 
 - `S2/R1`: Not implemented yet.
-- `S2/R2`: Not implemented yet.
 - `S2/R3`: Not implemented yet.
 - `S2/R4`: Not implemented yet.
 
@@ -252,11 +251,11 @@ The system SHALL provide a responsive, keyboard-accessible Assistant question fl
 
 | Requirement / Scenario | Evidence | Proves | Status |
 |---|---|---|---|
+| S2/R2-S1, S2/R2-S2, S2/R2-S3 | `apps/server/app/assistant/workspace_context.test.ts` | Internal/symlinked/unknown resources cannot enter the broker; UTF-8 and total context limits are deterministic; provenance appears only after a successful authority read. | focused automated passing |
 
 #### Verification Gaps
 
 - `S2/R1-S1`, `S2/R1-S2`, `S2/R1-S3`: Not verified yet.
-- `S2/R2-S1`, `S2/R2-S2`, `S2/R2-S3`: Not verified yet.
 - `S2/R3-S1`, `S2/R3-S2`: Not verified yet.
 - `S2/R4-S1`, `S2/R4-S2`, `S2/R4-S3`: Not verified yet.
 
