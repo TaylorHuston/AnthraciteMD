@@ -34,10 +34,14 @@ describe('GMD-002/S2/R1-S2 rendered Markdown presentation', () => {
 
   it('recognizes complete frontmatter across CRLF and CR line endings', () => {
     for (const eol of ['\r\n', '\r']) {
-      const source = `---${eol}title: Hidden${eol}---${eol}# Visible${eol}`
+      const source = `---${eol}title: Hidden${eol}---  ${eol}# Visible${eol}`
       expect(ranges(source)).toEqual([
         expect.objectContaining({ kind: 'heading', source: '# ' }),
       ])
     }
+  })
+
+  it.each(['---oops', '----'])('keeps a malformed %s closing fence literal', (closing) => {
+    expect(ranges(`---\r\ntitle: Test\r\n${closing}\r\n# Visible`)).toEqual([])
   })
 })

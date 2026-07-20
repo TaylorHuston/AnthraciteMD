@@ -15,8 +15,9 @@ const pluginFences = new Set(['dataview', 'dataviewjs', 'mermaid', 'tasks', 'que
 function completeFrontmatter(source: string) {
   const opening = /^---[ \t]*(\r\n|\r|\n)/.exec(source)
   if (!opening?.[1]) return 0
-  const end = source.indexOf(`${opening[1]}---`, opening[0].length)
-  return end < 0 ? -1 : end + opening[1].length + 3
+  const remainder = source.slice(opening[0].length)
+  const closing = new RegExp(`(?:^|${opening[1]})---[ \\t]*(?=${opening[1]}|$)`).exec(remainder)
+  return closing ? opening[0].length + closing.index + closing[0].length : -1
 }
 
 function escaped(source: string, at: number) {
