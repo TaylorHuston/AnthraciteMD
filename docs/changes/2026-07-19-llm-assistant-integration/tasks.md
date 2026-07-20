@@ -7,7 +7,7 @@ status: in_progress
 
 - Last completed action: promoted the validated private Change into `docs/changes/`, created the policy-required implementation branch, and transitioned the Change from `planned` to `in_progress`.
 - Next action: complete Discovery for Task 4.1, then add the runtime-neutral Assistant contracts and injected service boundaries through focused failing-first tests.
-- Active branch/ref: `change/llm-assistant-integration` from `develop` at `4b2873ff074518e6cb5defd1434d3c0a848886f1`.
+- Active branch/ref: `change/llm-assistant-integration` at promotion checkpoint `3e6d89b` (from `develop` at `4b2873ff074518e6cb5defd1434d3c0a848886f1`).
 - Expected dirty files: promoted Change artifacts, `docs/epics/gmd-004-llm-assistant/epic.md`, and the related proposed ADR/index/link files; these are the accepted promotion set and will be committed as the promotion checkpoint before application work.
 - Known blockers: none for promotion or deterministic implementation. Live Codex verification later requires the owner to complete OAuth.
 
@@ -105,7 +105,7 @@ status: in_progress
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R4 | main | Context/Settings responsive experience | pending | pending |
-| 2026-07-19 | Promotion and implementation start | main | active Change artifacts, GMD-004 draft Epic, proposed Pi/Codex ADR, related ADR index/link | validated; promotion completed and status transitioned to `in_progress` | commit pending |
+| 2026-07-19 | Promotion and implementation start | main | active Change artifacts, GMD-004 draft Epic, proposed Pi/Codex ADR, related ADR index/link | validated; promotion completed and status transitioned to `in_progress` | `3e6d89b` |
 
 ## Verification Ledger
 
