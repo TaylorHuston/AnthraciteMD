@@ -254,6 +254,14 @@ Select Option 1.
 5. The completed answer appears with a separate `Sources used` list. Selecting a source may reuse the existing opaque note-open action when available; polished citation navigation is deferred.
 6. Failures preserve the question for retry and never replace the active note or dismiss the Context surface unexpectedly.
 
+### OAuth Selection And Action Hierarchy
+
+- Settings > Assistant names the pending state and then asks the owner to **Choose how to connect**. Supporting copy explains that authorization completes in Codex, so the selection is not mistaken for a completed connection.
+- Replace the browser-native inline `<select>` with a labelled radio-card group. Each provider-supplied option remains available, while the selected option has a distinct border, surface, and checked control. The provider contract remains dynamic: the browser must not hard-code a fixed option set.
+- Put one filled primary action directly beneath the selected option. Its label includes the current choice (for example, `Continue with Browser login`) so the next step is unambiguous.
+- Keep `Cancel connection` available as a quiet secondary action below the primary action. It must not visually compete with or dominate the continuation action.
+- Preserve the existing normalized OAuth flow, polling, error/retry/cancel semantics, owner-session checks, and provider API contracts. This refinement changes only the browser presentation and interaction hierarchy.
+
 ### Responsive Composition
 
 - Desktop: Assistant occupies the upper interactive region of the existing right Context panel; long answer/source content scrolls inside the panel without changing page width or obscuring the document.
@@ -268,7 +276,7 @@ Select Option 1.
 |---|---|---|---|---|
 | Context panel/drawer shell | existing application component | `apps/web/src/App.tsx` Context composition and `Drawer` | disconnected, ready, loading, answer, no evidence, error, long answer, long sources | Preserve existing focus and responsive behavior. |
 | Assistant conversation block | application-specific | New bundled Assistant view contribution rendered by the web adapter | empty, prompt retained, busy, completed, failed, unavailable, interrupted | Keep source evidence visually distinct from model text. |
-| Codex provider settings | adopted reference | Coordinator-Local OAuth states adapted to GraphiteMD Settings | disconnected, starting, auth URL/device code, selection, manual input, failed, cancelled, connected, disconnecting | Do not reuse Coordinator styling or developer-agent scope. |
+| Codex provider settings | application-specific refinement | Existing GraphiteMD Settings with Coordinator-Local OAuth states adapted | disconnected, starting, auth URL/device code, radio-card selection, manual input, failed, cancelled, connected, disconnecting | Preserve the current normalized flow; replace the native inline selection with a clear option/action hierarchy. |
 | Source evidence list | application-specific | GraphiteMD opaque note identity/display path | one source, multiple sources, long path, truncated read, unavailable source | Source entries must come from service provenance. |
 | Settings tabs | existing application component | `apps/web/src/SettingsPanel.tsx` | desktop vertical, narrow horizontal, keyboard roving, long labels | Reconcile three-tab narrow layout. |
 
@@ -278,6 +286,8 @@ Select Option 1.
 - Announce phase and terminal changes through restrained `role=status`/`aria-live`; errors use `role=alert` without repeatedly announcing streamed content.
 - Keep answer text selectable and semantically grouped by turn; source evidence is a labeled list independent of answer Markdown.
 - OAuth input instructions, device codes, and errors have explicit labels and do not rely on color.
+- The OAuth-choice control uses a `fieldset`/`legend` (or equivalent labelled radio group), exposes each option as a keyboard-operable radio, and makes the selected option visually distinguishable without color alone.
+- The primary continuation action identifies the selected option, remains disabled only while submission is pending, and preserves the current focus/error behavior. Cancel remains a separate, operable secondary action.
 - Maintain drawer focus containment/restoration, Settings tab roving keys, Escape/close semantics, reduced motion, and no focus loss after a failed request.
 
 ### Visual Direction
@@ -285,6 +295,7 @@ Select Option 1.
 - Reuse the existing dark utilitarian workbench tokens and panel hierarchy.
 - Keep Assistant status quiet and operational; do not style model output as authoritative note content.
 - Use the existing action color for primary setup/submit controls and muted bordered surfaces for turns and sources.
+- In the OAuth selection state, use the action color only for the selected option and the filled continuation action; keep cancellation muted so the owner can immediately identify the intended forward path.
 
 ### Open Design Questions
 

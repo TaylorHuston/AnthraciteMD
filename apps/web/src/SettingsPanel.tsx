@@ -10,6 +10,7 @@ import {
   type PluginInventoryItem as Plugin,
 } from '@graphitemd/contracts'
 import { readApiError, request, requestJson } from './api.js'
+import './AssistantSettings.css'
 
 export type { Plugin }
 type SettingsArea = 'account' | 'assistant' | 'plugins'
@@ -67,10 +68,11 @@ function AssistantSettings({ onSessionExpired }: { onSessionExpired: () => void 
   const answer = async (event: FormEvent) => {
     event.preventDefault()
     if (!flow) return
+    const answerValue = flow.input?.kind === 'selection' && !value ? flow.input.options[0]?.id ?? '' : value
     setPending(true); setError(null)
     try {
       const response = await requestJson(`/api/v1/assistant/oauth/${encodeURIComponent(flow.flowId)}/answer`, AssistantOAuthFlow, {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-xsrf-token': xsrfToken() }, body: JSON.stringify({ value }),
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-xsrf-token': xsrfToken() }, body: JSON.stringify({ value: answerValue }),
       })
       if (response.status === 401) { onSessionExpired(); return }
       if (!response.ok) { setError('That authorization input is no longer valid.'); return }
@@ -103,15 +105,30 @@ function AssistantSettings({ onSessionExpired }: { onSessionExpired: () => void 
     finally { setPending(false) }
   }
   const input = flow?.input
+  const selectedOption = input?.kind === 'selection'
+    ? input.options.find((option) => option.id === value) ?? input.options[0]
+    : undefined
   return <section id="settings-panel-assistant" role="tabpanel" aria-labelledby="settings-tab-assistant"><p className="panel-label">Assistant</p><h2>OpenAI Codex</h2>
     <p aria-live="polite">{provider ? `Status: ${provider.status}.` : 'Checking Codex status…'}</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     {provider?.status !== 'connected' && !flow && <button className="primary-button" type="button" disabled={pending} onClick={() => void start()}>{pending ? 'Starting…' : 'Connect Codex'}</button>}
     {flow && <div className="settings-form" aria-live="polite"><p>Authorization status: {flow.status.replaceAll('_', ' ')}.</p>
       {input?.kind === 'device_code' && <p>Open <a href={input.verificationUri} target="_blank" rel="noreferrer">Codex device authorization</a> and enter code <strong>{input.userCode}</strong>.</p>}
-      {input?.kind === 'selection' && <form onSubmit={(event) => void answer(event)}><label htmlFor="oauth-selection">{input.label}</label><select id="oauth-selection" value={value} onChange={(event) => setValue(event.target.value)} required>{input.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><button type="submit" disabled={pending}>{pending ? 'Continuing…' : 'Continue'}</button></form>}
+      {input?.kind === 'selection' && <form className="oauth-selection-form" onSubmit={(event) => void answer(event)}>
+        <fieldset>
+          <legend>Choose how to connect</legend>
+          <p id="oauth-selection-help" className="oauth-selection-help">You’ll complete authorization in Codex.</p>
+          <div className="oauth-option-list" aria-describedby="oauth-selection-help">
+            {input.options.map((option) => <label className={`oauth-option${selectedOption?.id === option.id ? ' selected' : ''}`} key={option.id}>
+              <input type="radio" name="oauth-selection" value={option.id} checked={selectedOption?.id === option.id} onChange={() => setValue(option.id)} required />
+              <span>{option.label}</span>
+            </label>)}
+          </div>
+        </fieldset>
+        <button className="primary-button" type="submit" disabled={pending}>{pending ? 'Continuing…' : `Continue with ${selectedOption?.label ?? 'selected option'}`}</button>
+      </form>}
       {input?.kind === 'text' && <form onSubmit={(event) => void answer(event)}><label htmlFor="oauth-input">{input.label}</label><input id="oauth-input" type={input.secret ? 'password' : 'text'} value={value} onChange={(event) => setValue(event.target.value)} required={input.required} /><button type="submit" disabled={pending}>{pending ? 'Continuing…' : 'Continue'}</button></form>}
-      {!['succeeded', 'failed', 'cancelled'].includes(flow.status) && <button className="secondary-button" type="button" disabled={pending} onClick={() => void cancel()}>Cancel connection</button>}
+      {!['succeeded', 'failed', 'cancelled'].includes(flow.status) && <button className="secondary-button oauth-cancel-button" type="button" disabled={pending} onClick={() => void cancel()}>Cancel connection</button>}
       {flow.error && <p className="form-error" role="alert">{flow.error.message}</p>}
     </div>}
     {provider?.status === 'connected' && <button className="secondary-button" type="button" disabled={pending} onClick={() => void disconnect()}>Disconnect Codex</button>}

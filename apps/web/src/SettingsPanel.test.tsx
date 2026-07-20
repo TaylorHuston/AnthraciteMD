@@ -52,6 +52,43 @@ describe('owner Settings', () => {
     expect(screen.getByRole('tablist', { name: 'Settings areas' })).toHaveAttribute('aria-orientation', 'horizontal')
   })
 
+  it('GMD-004/S1 R1-S2a makes the OAuth choice and continuation action explicit', async () => {
+    const flow = {
+      flowId: 'flow_choice', provider: 'openai-codex', status: 'awaiting_input',
+      createdAt: '2026-07-20T12:00:00.000Z', updatedAt: '2026-07-20T12:00:00.000Z',
+      input: {
+        kind: 'selection', label: 'Select an authorization option', required: true,
+        options: [{ id: 'browser', label: 'Browser login' }, { id: 'device', label: 'Use a device code' }],
+      }, error: null,
+    }
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/v1/plugins') return response(200, { plugins: [] })
+      if (url === '/api/v1/assistant/provider') return response(200, { provider: 'openai-codex', status: 'disconnected', model: null })
+      if (url === '/api/v1/assistant/oauth' && init?.method === 'POST') return response(200, flow)
+      if (url === '/api/v1/assistant/oauth/flow_choice/answer') return response(200, flow)
+      if (url === '/api/v1/assistant/oauth/flow_choice/cancel') return response(200, { ...flow, status: 'cancelled', input: null })
+      return response(404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<SettingsPanel onSessionExpired={vi.fn()} />)
+
+    await user.click(screen.getByRole('tab', { name: 'Assistant' }))
+    await user.click(await screen.findByRole('button', { name: 'Connect Codex' }))
+
+    const choices = await screen.findByRole('group', { name: 'Choose how to connect' })
+    expect(within(choices).getByRole('radio', { name: 'Browser login' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Continue with Browser login' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Cancel connection' })).toBeVisible()
+
+    await user.click(within(choices).getByRole('radio', { name: 'Use a device code' }))
+    await user.click(screen.getByRole('button', { name: 'Continue with Use a device code' }))
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/assistant/oauth/flow_choice/answer', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ value: 'device' }),
+    }))
+  })
+
   it('GMD-001/S2 R1 changes a confirmed password and returns to sign in', async () => {
     document.cookie = 'XSRF-TOKEN=settings-token'
     const fetchMock = vi.fn()
