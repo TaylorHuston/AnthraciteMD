@@ -531,12 +531,11 @@ describe('GMD-002/S1 responsive browse shell', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup(); const view = render(<App />)
     await user.click(await screen.findByRole('treeitem', { name: /Alpha/ }))
+    const filename = screen.getByRole('textbox', { name: 'Filename' })
+    await user.clear(filename); await user.type(filename, 'Renamed.md')
     const editor = view.container.querySelector('.cm-content') as HTMLElement
     await user.click(editor); await user.keyboard('{Control>}a{/Control}# Conflicted draft')
-    expect(await screen.findByText('Conflict', {}, { timeout: 2000 })).toBeVisible()
-
-    const filename = screen.getByRole('textbox', { name: 'Filename' })
-    await user.clear(filename); await user.type(filename, 'Renamed.md'); await user.click(screen.getByRole('button', { name: 'Rename' }))
+    fireEvent.submit(screen.getByRole('button', { name: 'Rename' }).closest('form')!)
     await screen.findByRole('heading', { name: 'Renamed', level: 1 })
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/notes/res_alpha/rename', expect.objectContaining({
       body: JSON.stringify({ expectedRevision: 'rev_host', fileName: 'Renamed.md' }),

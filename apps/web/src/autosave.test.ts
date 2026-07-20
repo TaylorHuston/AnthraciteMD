@@ -35,6 +35,18 @@ describe('GMD-002/S2 conflict-safe autosave', () => {
     expect(autosave.snapshot()).toMatchObject({ draft: 'local draft', dirty: true, phase: 'conflict', pending: false })
   })
 
+  it('R2-S3 reports a conflict discovered while flushing a scheduled transition', async () => {
+    const autosave = new AutosaveCoordinator(10_000)
+    autosave.open({ resourceId: 'res_one', source: 'canonical', revision: 'rev_1', eligible: true,
+      save: async () => ({ status: 'conflict', currentRevision: 'rev_external' }) })
+    autosave.edit('local draft')
+    const discarded: string[] = []
+
+    expect(await prepareAutosaveTransition(autosave, () => true, (reason) => discarded.push(reason))).toBe(true)
+    expect(discarded).toEqual(['conflict'])
+    expect(autosave.snapshot()).toMatchObject({ resourceId: null, phase: 'idle' })
+  })
+
   it('R2-S4 ignores a late response from a prior resource and guards transitions', async () => {
     const late = deferred<{ status: 'saved'; revision: string }>(); const autosave = new AutosaveCoordinator(0)
     autosave.open({ resourceId: 'res_old', source: 'old', revision: 'rev_old', eligible: true, save: () => late.promise })

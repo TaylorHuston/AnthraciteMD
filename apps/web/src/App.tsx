@@ -458,12 +458,16 @@ function Workbench({ workspace, onSessionExpired, onSignedOut }: { workspace: Wo
   }, [guardTransition, openNote])
   const renameSelected = async (event: FormEvent) => {
     event.preventDefault(); setRenameError(null)
-    const beforeTransition = autosave.snapshot()
-    if (!selected || !(await guardTransition())) return
+    let discardedReason: 'error' | 'conflict' | 'ineligible' | undefined
+    if (!selected || !(await prepareAutosaveTransition(
+      autosave,
+      () => window.confirm('This note has unsaved work. Discard the local draft?'),
+      (reason) => { discardedReason = reason },
+    ))) return
     let renameSource = selected
     let snapshot = autosave.snapshot()
     if (!snapshot.revision) {
-      if (beforeTransition.phase === 'conflict') {
+      if (discardedReason === 'conflict') {
         await openNote(selected.resourceId, 'restore')
         const refreshed = selectedRef.current
         if (!refreshed || refreshed.resourceId !== selected.resourceId) return

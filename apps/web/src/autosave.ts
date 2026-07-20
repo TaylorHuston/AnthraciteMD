@@ -164,10 +164,12 @@ export class AutosaveCoordinator {
 export async function prepareAutosaveTransition(
   autosave: AutosaveCoordinator,
   confirmDiscard: () => boolean,
+  onDiscard?: (reason: 'error' | 'conflict' | 'ineligible') => void,
 ): Promise<boolean> {
   const result = await autosave.prepareTransition()
   if (result.ready) return true
   if (result.reason === 'source-changed' || !confirmDiscard()) return false
+  onDiscard?.(result.reason)
   autosave.discard()
   return true
 }
