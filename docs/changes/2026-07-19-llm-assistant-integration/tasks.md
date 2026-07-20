@@ -152,7 +152,7 @@ status: in_progress
 | YYYY-MM-DD | Production fake-provider browser journey | deterministic E2E | Connect, ask, brokered read, service-derived sources, persistence, disconnect, desktop/mobile continuity | pending |
 | YYYY-MM-DD | Rendered Context/Settings matrix | rendered UI verification | GMD-004/S2 R4 responsive states, interaction, accessibility, and visual containment | pending |
 | YYYY-MM-DD | Live Codex note-grounding playtest | live-provider playtest | Real OAuth/model can answer from a uniquely identifiable note with matching source provenance | pending owner authorization |
-| YYYY-MM-DD | Root gates and scoped SDD validation | broad supporting gate | Repository integration and artifact consistency | pending |
+| 2026-07-20 | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm build-storybook`, `pnpm test:storybook`, `pnpm test:e2e`, `pnpm audit --audit-level high`, scoped `sdd validate` | broad supporting gate | Repository integration, production artifact serving, Storybook interactions, foundation desktop/mobile journey, dependency audit, and artifact consistency. | passing; existing Storybook React `act` warning observed, but all 30 stories passed |
 
 ## Manual Feedback
 
