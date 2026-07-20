@@ -78,11 +78,12 @@ export function AssistantContext({ title, onSessionExpired, onOpenSettings, onOp
         <p>{turn.answer}</p>
         {turn.sources.length > 0 && <ul className="assistant-sources" aria-label="Sources">{turn.sources.map((source) => <li key={source.resourceId}><button type="button" onClick={() => onOpenNote(source.resourceId)}>{source.displayPath}</button></li>)}</ul>}
       </article>)}</div>
-      <form className="assistant-composer" onSubmit={(event) => void ask(event)}>
+      <form className="assistant-composer" onSubmit={(event) => void ask(event)} aria-busy={asking}>
         <label htmlFor={questionId}>Ask Codex</label>
         <textarea id={questionId} value={question} onChange={(event) => setQuestion(event.target.value)} disabled={asking} placeholder="Ask about your workspace" rows={3} />
+        {asking && <p role="status" aria-live="polite">Asking Codex. Your question will remain here until the answer is ready.</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button" type="submit" disabled={asking || !question.trim()}>{asking ? 'Asking Codex…' : 'Ask Codex'}</button>
+        <button className="primary-button" type="submit" disabled={asking || !question.trim()}>{asking ? 'Asking Codex…' : error ? 'Retry Codex' : 'Ask Codex'}</button>
       </form>
     </>}
   </section>

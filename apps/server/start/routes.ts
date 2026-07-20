@@ -1,5 +1,5 @@
 import router from '@adonisjs/core/services/router'
-import { serviceDescriptor, type AssistantQuestion } from '@graphitemd/contracts'
+import { AssistantQuestion as AssistantQuestionContract, matchesContract, serviceDescriptor, type AssistantQuestion } from '@graphitemd/contracts'
 import {
   ConfiguredWorkspaceAuthority,
   WorkspaceInvalidMutationError,
@@ -213,14 +213,20 @@ router.post('/api/v1/assistant/questions', async ({ auth, request, response }) =
   if (!(await requireOwner(auth, response))) return
   const question = request.input('question')
   const conversationId = request.input('conversationId')
-  if (typeof question !== 'string' || (conversationId !== undefined && typeof conversationId !== 'string')) {
+  if (typeof question !== 'string' || !question.trim() || Buffer.byteLength(question, 'utf8') > 4_000 ||
+      (conversationId !== undefined && typeof conversationId !== 'string')) {
+    return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
+  }
+  const assistantQuestion = { question, ...(conversationId === undefined ? {} : { conversationId }) }
+  if (!matchesContract(AssistantQuestionContract, assistantQuestion)) {
     return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
   }
   const runtime = await pluginRuntime()
   if (!runtime) return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
   try {
-    const result = await runtime.askAssistant({ question, ...(conversationId ? { conversationId } : {}) } as AssistantQuestion)
+    const result = await runtime.askAssistant(assistantQuestion as AssistantQuestion)
     if (result.kind === 'handled') return result.turn
+    if (result.kind === 'denied') return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
     return response.serviceUnavailable({ error: { code: 'provider_unavailable', message: 'The Assistant is unavailable.' } })
   } catch (error) {
     if (error instanceof AssistantQuestionError) {

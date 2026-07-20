@@ -12,15 +12,19 @@ it('GMD-004/S2 R1-S1 declares exactly the bounded Context model-session policy',
     provider: 'openai-codex' as const, model: 'gpt-5.4', createdAt: '2026-07-20T12:00:00.000Z', completedAt: '2026-07-20T12:00:01.000Z',
     answer: 'The GraphiteMD note does.', error: null, sources: [],
   }))
-  let handler: ((input: { question: string; conversationId?: `conv_${string}` }) => Promise<unknown>) | undefined
+  let policy: unknown
+  let handler: ((input: { question: string; conversationId?: `conv_${string}` }, runner: typeof runModelSession) => Promise<unknown>) | undefined
   await assistantPlugin.activate({
     capabilities: {} as never,
-    assistant: { runModelSession, search: vi.fn(), read: vi.fn() },
     state: {} as never,
-    registerAssistantQuestionHandler(next) { handler = next; return () => undefined },
+    registerAssistantQuestionHandler(nextPolicy, next) { policy = nextPolicy; handler = next; return () => undefined },
   })
 
-  await expect(handler?.({ question: 'Which note explains GraphiteMD?' })).resolves.toMatchObject({ turnId: 'turn_alpha' })
+  expect(policy).toEqual({
+    prompt: expect.stringContaining('workspace evidence'),
+    tools: ['workspace_search', 'workspace_read'],
+  })
+  await expect(handler?.({ question: 'Which note explains GraphiteMD?' }, runModelSession)).resolves.toMatchObject({ turnId: 'turn_alpha' })
   expect(runModelSession).toHaveBeenCalledWith({
     question: 'Which note explains GraphiteMD?',
     policy: {

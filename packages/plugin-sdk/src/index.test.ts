@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
-  createAssistantCapabilities,
   PluginCapabilityDenied,
   PluginHost,
   createCapabilityBroker,
@@ -169,82 +168,75 @@ describe('GMD-003/S1 R3 capability mediation', () => {
     await expect(broker.perform({ permission: 'status:read', resource: '/Users/private' as never })).rejects.toMatchObject({ reason: 'invalid_resource' })
   })
 
-  it('exposes a bounded model-session only through declared service-owned capabilities', async () => {
-    const operations: unknown[] = []
-    const assistantManifest: PluginManifest = {
-      ...manifest,
-      id: 'assistant',
-      permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'],
-    }
-    const broker = createCapabilityBroker(assistantManifest, {
-      async perform(operation) {
-        operations.push(operation)
-        if (operation.permission === 'assistant:model-session') return { turnId: 'turn_alpha', conversationId: 'conv_alpha', status: 'completed', question: 'What changed?', provider: 'openai-codex', model: 'gpt-5.4', createdAt: '2026-07-19T12:00:00.000Z', completedAt: '2026-07-19T12:00:02.000Z', answer: 'Nothing yet.', error: null, sources: [] }
-        if (operation.permission === 'workspace:search') return { results: [] }
-        return { resourceId: operation.resource, displayPath: 'Notes/Alpha.md', source: '# Alpha', revision: 'rev_alpha', yamlProperties: [], yamlParseError: null }
-      },
-    })
-    const assistant = createAssistantCapabilities(broker)
-
-    await expect(assistant.runModelSession({
-      conversationId: 'conv_alpha', question: 'What changed?',
-      policy: { prompt: 'Answer only from read workspace notes.', tools: ['workspace_search', 'workspace_read'] },
-    })).resolves.toMatchObject({ turnId: 'turn_alpha', status: 'completed' })
-    await expect(assistant.search({ query: 'GraphiteMD', limit: 4 })).resolves.toEqual({ results: [] })
-    await expect(assistant.read(resourceId('res_alpha'))).resolves.toMatchObject({ resourceId: 'res_alpha' })
-    expect(operations).toEqual([
-      expect.objectContaining({ permission: 'assistant:model-session', resource: 'assistant', input: {
-        conversationId: 'conv_alpha', question: 'What changed?',
-        policy: { prompt: 'Answer only from read workspace notes.', tools: ['workspace_search', 'workspace_read'] },
-      } }),
-      expect.objectContaining({ permission: 'workspace:search', resource: 'workspace', input: { query: 'GraphiteMD', limit: 4 } }),
-      expect.objectContaining({ permission: 'workspace:read', resource: 'res_alpha' }),
-    ])
-  })
-
-  it('fails closed when an Assistant capability is not declared', async () => {
-    const assistant = createAssistantCapabilities(createCapabilityBroker(manifest, { async perform() { return undefined } }))
-    await expect(assistant.runModelSession({
-      question: 'What changed?', policy: { prompt: 'Ground answers.', tools: ['workspace_search'] },
-    })).rejects.toMatchObject({ code: 'plugin_capability_denied', reason: 'undeclared' })
-  })
 })
 
 describe('GMD-004/S2 R1-S1 Assistant context handler', () => {
   const question: AssistantQuestion = { question: 'What changed?' }
   const sessionResult = { turnId: 'turn_alpha', conversationId: 'conv_alpha', status: 'completed' as const, question: 'What changed?', provider: 'openai-codex' as const, model: 'gpt-5.4', createdAt: '2026-07-20T12:00:00.000Z', completedAt: '2026-07-20T12:00:01.000Z', answer: 'Nothing yet.', error: null, sources: [] }
 
-  it('registers one declared Context handler and removes it when disabled', async () => {
-    const handler = vi.fn(async () => sessionResult)
+  const policy = { prompt: 'Ground answers from workspace evidence.', tools: ['workspace_search', 'workspace_read'] as ('workspace_search' | 'workspace_read')[] }
+
+  it('registers one exact Context handler, runs its declared policy only during dispatch, and removes it when disabled', async () => {
+    const handler = vi.fn(async (_input, runModelSession) => runModelSession({ question: 'What changed?', policy }))
     const assistantPlugin: GraphitePlugin = {
       manifest: {
         ...manifest, id: 'assistant', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'],
-        contributions: { views: [{ id: 'assistant-context', title: 'Assistant' }] },
+        contributions: { views: [{ id: 'assistant-context', title: 'Assistant', surface: 'context', renderer: 'assistant-conversation' }] },
       },
-      async activate(context) { context.registerAssistantQuestionHandler(handler) },
+      async activate(context) { context.registerAssistantQuestionHandler(policy, handler) },
     }
-    const host = new PluginHost({ hostVersion: '1.0.0', enabled: {}, provider: { async perform() { return sessionResult } }, stateBackend: memoryState() })
+    const perform = vi.fn(async () => sessionResult)
+    const host = new PluginHost({ hostVersion: '1.0.0', enabled: {}, provider: { perform }, stateBackend: memoryState() })
     await host.load([assistantPlugin])
     await expect(host.dispatchAssistantQuestion(question)).resolves.toEqual({ kind: 'handled', turn: sessionResult })
+    expect(perform).toHaveBeenCalledWith(expect.objectContaining({ permission: 'assistant:model-session', input: { question: 'What changed?', policy } }))
     await host.disable('assistant')
     await expect(host.dispatchAssistantQuestion(question)).resolves.toEqual({ kind: 'unavailable' })
   })
 
-  it('refuses an undeclared assistant Context owner and sanitizes duplicate handler failures', async () => {
+  it('rejects a handler that changes its registered policy or fabricates a turn', async () => {
+    const descriptor = { views: [{ id: 'assistant-context', title: 'Assistant', surface: 'context' as const, renderer: 'assistant-conversation' as const }] }
+    const changedPolicy: GraphitePlugin = {
+      manifest: { ...manifest, id: 'changed-policy', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: descriptor },
+      async activate(context) {
+        context.registerAssistantQuestionHandler(policy, (_input, runModelSession) => runModelSession({ question: 'What changed?', policy: { ...policy, prompt: 'Different.' } }))
+      },
+    }
+    const fakeTurn: GraphitePlugin = {
+      manifest: { ...manifest, id: 'fake-turn', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: descriptor },
+      async activate(context) { context.registerAssistantQuestionHandler(policy, async () => sessionResult) },
+    }
+    const provider = { perform: vi.fn(async () => sessionResult) }
+    const changedHost = new PluginHost({ hostVersion: '1.0.0', enabled: {}, provider, stateBackend: memoryState() })
+    await changedHost.load([changedPolicy])
+    await expect(changedHost.dispatchAssistantQuestion(question)).resolves.toEqual({ kind: 'unavailable' })
+    expect(provider.perform).not.toHaveBeenCalled()
+
+    const fakeHost = new PluginHost({ hostVersion: '1.0.0', enabled: {}, provider, stateBackend: memoryState() })
+    await fakeHost.load([fakeTurn])
+    await expect(fakeHost.dispatchAssistantQuestion(question)).resolves.toEqual({ kind: 'unavailable' })
+  })
+
+  it('refuses activation-time model sessions, undeclared policy/descriptor owners, and duplicate handlers', async () => {
+    const activationModelCall: GraphitePlugin = {
+      manifest: { ...manifest, id: 'activation-model', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'] },
+      async activate(context) { await context.capabilities.perform({ permission: 'assistant:model-session', resource: resourceId('assistant') }) },
+    }
     const noView: GraphitePlugin = {
       manifest: { ...manifest, id: 'no-view', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'] },
-      async activate(context) { context.registerAssistantQuestionHandler(async () => sessionResult) },
+      async activate(context) { context.registerAssistantQuestionHandler(policy, async () => sessionResult) },
     }
     const first: GraphitePlugin = {
-      manifest: { ...manifest, id: 'first', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: { views: [{ id: 'assistant-context', title: 'Assistant' }] } },
-      async activate(context) { context.registerAssistantQuestionHandler(async () => sessionResult) },
+      manifest: { ...manifest, id: 'first', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: { views: [{ id: 'assistant-context', title: 'Assistant', surface: 'context', renderer: 'assistant-conversation' }] } },
+      async activate(context) { context.registerAssistantQuestionHandler(policy, async () => sessionResult) },
     }
     const duplicate: GraphitePlugin = {
-      manifest: { ...manifest, id: 'duplicate', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: { views: [{ id: 'assistant-context', title: 'Assistant' }] } },
-      async activate(context) { context.registerAssistantQuestionHandler(async () => sessionResult) },
+      manifest: { ...manifest, id: 'duplicate', permissions: ['assistant:model-session', 'workspace:search', 'workspace:read'], contributions: { views: [{ id: 'assistant-context', title: 'Assistant', surface: 'context', renderer: 'assistant-conversation' }] } },
+      async activate(context) { context.registerAssistantQuestionHandler({ ...policy, prompt: 'A different prompt.' }, async () => sessionResult) },
     }
     const host = new PluginHost({ hostVersion: '1.0.0', enabled: {}, provider: { async perform() { return sessionResult } }, stateBackend: memoryState() })
-    await host.load([noView, first, duplicate])
+    await host.load([activationModelCall, noView, first, duplicate])
+    expect(host.list().find((item) => item.id === 'activation-model')).toMatchObject({ status: 'activation_failed' })
     expect(host.list().find((item) => item.id === 'no-view')).toMatchObject({ status: 'activation_failed' })
     expect(host.list().find((item) => item.id === 'duplicate')).toMatchObject({ status: 'activation_failed' })
     await expect(host.dispatchAssistantQuestion({ question: '   ' })).resolves.toEqual({ kind: 'denied' })

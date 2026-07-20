@@ -56,7 +56,7 @@ export class AssistantQuestionService {
         turnId: turnId as `turn_${string}`, conversationId, status: 'in_progress', question, provider: 'openai-codex', model: provider.model,
         createdAt: now(), completedAt: null, answer: null, error: null, sources: [],
       }
-      await this.dependencies.conversationStore.create(started)
+      await this.dependencies.conversationStore.start(started)
       const answer = (await this.dependencies.runtime.run({
         question,
         policy: input.policy,

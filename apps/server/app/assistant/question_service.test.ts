@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -20,9 +20,10 @@ async function fixture(runtime: AssistantRunRuntime) {
   const workspace = new ConfiguredWorkspaceAuthority(root)
   await workspace.openConfigured()
   const search = new LocalSearchService(root, workspace)
+  let turn = 0
   return { root, service: new AssistantQuestionService({
     runtime, context: () => new AssistantWorkspaceContext(workspace, search), conversationStore: new ConversationStore(root, workspace),
-    nextConversationId: () => 'conv_alpha', nextTurnId: () => 'turn_alpha', now: () => '2026-07-20T00:00:00.000Z',
+    nextConversationId: () => 'conv_alpha', nextTurnId: () => turn++ === 0 ? 'turn_alpha' : 'turn_beta', now: () => '2026-07-20T00:00:00.000Z',
   }) }
 }
 
@@ -64,5 +65,24 @@ describe('GMD-004/S2 R1 read-only workspace-grounded answers', () => {
     await expect(active.service.ask({ question: 'launch again?', policy })).rejects.toMatchObject({ code: 'question_in_flight' })
     release()
     await expect(first).rejects.toMatchObject({ code: 'no_relevant_evidence' })
+  })
+
+  it('R1-S1 appends a follow-up question to its canonical conversation record', async () => {
+    const { root, service } = await fixture({
+      status: async () => ({ connected: true, model: 'gpt-5.4' }),
+      run: async ({ tools }) => {
+        const [result] = await tools.search('launch')
+        await tools.read(result!.resourceId)
+        return 'The launch date is documented.'
+      },
+    })
+
+    const first = await service.ask({ question: 'When is the launch?', policy })
+    const second = await service.ask({ question: 'Which note says that?', conversationId: first.conversationId, policy })
+
+    expect(second).toMatchObject({ conversationId: first.conversationId, turnId: 'turn_beta', status: 'completed' })
+    const record = JSON.parse(await readFile(join(root, '.graphitemd', 'conversations', 'conv_alpha.json'), 'utf8'))
+    expect(record.turns).toHaveLength(2)
+    expect(record.turns.map((entry: { status: string }) => entry.status)).toEqual(['completed', 'completed'])
   })
 })

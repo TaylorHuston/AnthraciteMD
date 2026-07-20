@@ -55,6 +55,38 @@ export class ConversationStore {
     })
   }
 
+  /**
+   * Starts the next turn in an existing conversation or creates its first
+   * record. Any retained in-progress turn is first recovered so a restart
+   * cannot leave the canonical transcript ambiguous.
+   */
+  async start(turn: Extract<AssistantTurnValue, { status: 'in_progress' }>): Promise<ConversationDocument> {
+    return this.#exclusive(turn.conversationId, async () => {
+      const path = await this.#path(turn.conversationId)
+      try {
+        await lstat(path)
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          const document: ConversationDocument = { schemaVersion: 1, conversationId: turn.conversationId, turns: [turn] }
+          await this.#write(path, document)
+          return document
+        }
+        throw new ConversationStoreError()
+      }
+      const current = await this.read(turn.conversationId)
+      const recovered = current.turns.map((candidate) => candidate.status === 'in_progress' ? {
+        ...candidate,
+        status: 'failed' as const,
+        completedAt: new Date().toISOString(),
+        answer: null,
+        error: this.#error('interrupted', true),
+      } : candidate)
+      const document: ConversationDocument = { ...current, turns: [...recovered, turn] }
+      await this.#write(path, document)
+      return document
+    })
+  }
+
   async read(conversationId: string): Promise<ConversationDocument> {
     const path = await this.#path(conversationId)
     let metadata

@@ -30,6 +30,8 @@ describe('Assistant Context contribution', () => {
     await user.click(screen.getByRole('button', { name: 'Ask Codex' }))
     expect(screen.getByRole('button', { name: 'Asking Codex…' })).toBeDisabled()
     expect(input).toHaveValue('What changed?')
+    expect(screen.getByRole('status')).toHaveTextContent('Your question will remain here')
+    expect(input.closest('form')).toHaveAttribute('aria-busy', 'true')
 
     complete(new Response(JSON.stringify({
       turnId: 'turn_alpha', conversationId: 'conv_alpha', status: 'completed', question: 'What changed?', provider: 'openai-codex', model: 'gpt-5.4',
@@ -49,5 +51,22 @@ describe('Assistant Context contribution', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Open Assistant settings' }))
     expect(openSettings).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the question available behind an explicit retry action after a recoverable error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/v1/assistant/provider') return response(200, { provider: 'openai-codex', status: 'connected', model: 'gpt-5.4' })
+      return response(503, { error: { code: 'provider_unavailable', message: 'Codex is temporarily unavailable.' } })
+    }))
+    const user = userEvent.setup()
+    render(<AssistantContext title="Assistant" onSessionExpired={vi.fn()} onOpenSettings={vi.fn()} onOpenNote={vi.fn()} />)
+
+    const input = await screen.findByRole('textbox', { name: 'Ask Codex' })
+    await user.type(input, 'Try again')
+    await user.click(screen.getByRole('button', { name: 'Ask Codex' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Codex is temporarily unavailable.')
+    expect(input).toHaveValue('Try again')
+    expect(screen.getByRole('button', { name: 'Retry Codex' })).toBeEnabled()
   })
 })

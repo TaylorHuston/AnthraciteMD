@@ -2,14 +2,10 @@ import {
   AssistantQuestion as AssistantQuestionContract,
   AssistantModelSessionRequest,
   AssistantTurn,
-  MarkdownNoteResponse,
-  SearchResponse,
   matchesContract,
   type AssistantQuestion as AssistantQuestionValue,
   type AssistantModelSessionRequest as AssistantModelSessionRequestValue,
   type AssistantTurn as AssistantTurnValue,
-  type MarkdownNoteResponse as MarkdownNoteResponseValue,
-  type SearchResponse as SearchResponseValue,
 } from '@graphitemd/contracts'
 
 export const PLUGIN_MANIFEST_SCHEMA_VERSION = 1 as const
@@ -129,39 +125,6 @@ export function createCapabilityBroker(manifest: PluginManifest, provider: Capab
   })
 }
 
-export type AssistantCapabilities = Readonly<{
-  runModelSession(request: AssistantModelSessionRequestValue): Promise<AssistantTurnValue>
-  search(input: Readonly<{ query: string; limit: number }>): Promise<SearchResponseValue>
-  read(resource: OpaqueResourceId): Promise<MarkdownNoteResponseValue>
-}>
-
-/**
- * A typed SDK façade over the only service-owned operations an Assistant
- * plugin may request. The host still enforces manifest declarations and owns
- * every provider, workspace, credential, and runtime implementation.
- */
-export function createAssistantCapabilities(broker: ReturnType<typeof createCapabilityBroker>): AssistantCapabilities {
-  const assistant = resourceId('assistant')
-  const workspace = resourceId('workspace')
-  const response = async <Value>(schema: Parameters<typeof matchesContract>[0], operation: CapabilityOperation): Promise<Value> => {
-    const value = await broker.perform(operation)
-    if (!matchesContract(schema, value)) {
-      throw new PluginCapabilityDenied('unavailable', 'Assistant capability returned an invalid response.')
-    }
-    return value as Value
-  }
-  return Object.freeze({
-    runModelSession: (request) => {
-      if (!matchesContract(AssistantModelSessionRequest, request)) {
-        return Promise.reject(new PluginCapabilityDenied('unavailable', 'Assistant model-session request is invalid.'))
-      }
-      return response<AssistantTurnValue>(AssistantTurn, { permission: 'assistant:model-session', resource: assistant, input: request })
-    },
-    search: (input) => response<SearchResponseValue>(SearchResponse, { permission: 'workspace:search', resource: workspace, input }),
-    read: (resource) => response<MarkdownNoteResponseValue>(MarkdownNoteResponse, { permission: 'workspace:read', resource }),
-  })
-}
-
 export interface PluginStateBackend {
   read(pluginId: string): Promise<unknown | undefined>
   transaction(pluginId: string, value: unknown): Promise<void>
@@ -185,12 +148,13 @@ export function createPluginStateAdapter(pluginId: string, schemaVersion: number
 
 export type PluginContext = Readonly<{
   capabilities: ReturnType<typeof createCapabilityBroker>
-  assistant: AssistantCapabilities
   state: ReturnType<typeof createPluginStateAdapter>
-  registerAssistantQuestionHandler(handler: AssistantQuestionHandler): () => void
+  registerAssistantQuestionHandler(policy: AssistantModelSessionRequestValue['policy'], handler: AssistantQuestionHandler): () => void
 }>
 export type AssistantQuestion = AssistantQuestionValue
-export type AssistantQuestionHandler = (input: AssistantQuestionValue) => Promise<AssistantTurnValue>
+/** A model-session runner exists only for the duration of a host-dispatched question. */
+export type AssistantModelSessionRunner = (request: AssistantModelSessionRequestValue) => Promise<AssistantTurnValue>
+export type AssistantQuestionHandler = (input: AssistantQuestionValue, runModelSession: AssistantModelSessionRunner) => Promise<AssistantTurnValue>
 export type AssistantQuestionDispatch =
   | Readonly<{ kind: 'handled'; turn: AssistantTurnValue }>
   | Readonly<{ kind: 'unavailable' }>
@@ -213,7 +177,12 @@ export class PluginHost {
   readonly #inventory = new Map<string, PluginInventoryItem>()
   readonly #plugins = new Map<string, GraphitePlugin>()
   readonly #disposers = new Map<string, () => void | Promise<void>>()
-  #assistantQuestionHandler: Readonly<{ pluginId: string; handler: AssistantQuestionHandler }> | undefined = undefined
+  #assistantQuestionHandler: Readonly<{
+    pluginId: string
+    capabilities: ReturnType<typeof createCapabilityBroker>
+    policy: AssistantModelSessionRequestValue['policy']
+    handler: AssistantQuestionHandler
+  }> | undefined = undefined
   constructor(private readonly options: PluginHostOptions) {}
 
   async load(candidates: readonly unknown[]): Promise<void> {
@@ -282,11 +251,15 @@ export class PluginHost {
     }
     try {
       const capabilities = createCapabilityBroker(plugin.manifest, this.options.provider)
+      const activationCapabilities: ReturnType<typeof createCapabilityBroker> = Object.freeze({
+        perform: (operation) => operation.permission === 'assistant:model-session'
+          ? Promise.reject(new PluginCapabilityDenied('unavailable', 'Model sessions are available only while handling an owner question.'))
+          : capabilities.perform(operation),
+      })
       const dispose = await plugin.activate({
-        capabilities,
-        assistant: createAssistantCapabilities(capabilities),
+        capabilities: activationCapabilities,
         state: createPluginStateAdapter(id, plugin.manifest.state.schemaVersion, this.options.stateBackend),
-        registerAssistantQuestionHandler: (handler) => this.#registerAssistantQuestionHandler(plugin, handler),
+        registerAssistantQuestionHandler: (policy, handler) => this.#registerAssistantQuestionHandler(plugin, capabilities, policy, handler),
       })
       if (dispose) this.#disposers.set(id, dispose)
       this.#inventory.set(id, { id, manifest: plugin.manifest, status: 'active', contributions: plugin.manifest.contributions })
@@ -315,23 +288,45 @@ export class PluginHost {
       return registered ? { kind: 'denied' } : { kind: 'unavailable' }
     }
     try {
-      const turn = await registered.handler(input)
-      return matchesContract(AssistantTurn, turn) ? { kind: 'handled', turn } : { kind: 'unavailable' }
+      let modelTurn: AssistantTurnValue | undefined
+      const turn = await registered.handler(input, async (request) => {
+        if (modelTurn) throw new PluginCapabilityDenied('unavailable', 'An Assistant handler may start only one model session per question.')
+        if (!matchesContract(AssistantModelSessionRequest, request) ||
+            request.question !== input.question || request.conversationId !== input.conversationId ||
+            !sameModelSessionPolicy(request.policy, registered.policy)) {
+          throw new PluginCapabilityDenied('undeclared', 'Assistant handlers may run only their registered policy for the dispatched question.')
+        }
+        const value = await registered.capabilities.perform({ permission: 'assistant:model-session', resource: resourceId('assistant'), input: request })
+        if (!matchesContract(AssistantTurn, value)) throw new PluginCapabilityDenied('unavailable', 'Assistant model session returned an invalid turn.')
+        modelTurn = value
+        return modelTurn
+      })
+      return modelTurn && turn === modelTurn ? { kind: 'handled', turn } : { kind: 'unavailable' }
     } catch {
       return { kind: 'unavailable' }
     }
   }
 
-  #registerAssistantQuestionHandler(plugin: GraphitePlugin, handler: AssistantQuestionHandler): () => void {
-    const hasContextContribution = plugin.manifest.contributions.views?.some((view) => view.id === 'assistant-context') ?? false
-    const requiredPermissions: readonly PluginPermission[] = ['assistant:model-session', 'workspace:search', 'workspace:read']
-    if (!hasContextContribution || !requiredPermissions.every((permission) => plugin.manifest.permissions.includes(permission))) {
+  #registerAssistantQuestionHandler(
+    plugin: GraphitePlugin,
+    capabilities: ReturnType<typeof createCapabilityBroker>,
+    policy: AssistantModelSessionRequestValue['policy'],
+    handler: AssistantQuestionHandler,
+  ): () => void {
+    const hasContextContribution = plugin.manifest.contributions.views?.some((view) =>
+      view.id === 'assistant-context' && view.surface === 'context' && view.renderer === 'assistant-conversation') ?? false
+    const requiredToolPermissions: Record<AssistantModelSessionRequestValue['policy']['tools'][number], PluginPermission> = {
+      workspace_search: 'workspace:search', workspace_read: 'workspace:read',
+    }
+    if (!hasContextContribution || !matchesContract(AssistantModelSessionRequest, { question: 'policy validation', policy }) ||
+        !plugin.manifest.permissions.includes('assistant:model-session') ||
+        !policy.tools.every((tool) => plugin.manifest.permissions.includes(requiredToolPermissions[tool]))) {
       throw new PluginCapabilityDenied('undeclared', 'Assistant Context handlers require their declared view and read-only capabilities.')
     }
     if (this.#assistantQuestionHandler) {
       throw new PluginCapabilityDenied('unavailable', 'Only one Assistant Context handler may be active.')
     }
-    const registered = { pluginId: plugin.manifest.id, handler }
+    const registered = { pluginId: plugin.manifest.id, capabilities, policy, handler }
     this.#assistantQuestionHandler = registered
     return () => {
       if (this.#assistantQuestionHandler === registered) this.#assistantQuestionHandler = undefined
@@ -341,4 +336,8 @@ export class PluginHost {
   #removeAssistantQuestionHandler(pluginId: string): void {
     if (this.#assistantQuestionHandler?.pluginId === pluginId) this.#assistantQuestionHandler = undefined
   }
+}
+
+function sameModelSessionPolicy(left: AssistantModelSessionRequestValue['policy'], right: AssistantModelSessionRequestValue['policy']): boolean {
+  return left.prompt === right.prompt && left.tools.length === right.tools.length && left.tools.every((tool, index) => tool === right.tools[index])
 }

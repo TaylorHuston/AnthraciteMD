@@ -31,9 +31,12 @@ export const assistantPlugin: GraphitePlugin = {
     },
   },
   async activate(context) {
-    context.registerAssistantQuestionHandler((input) => context.assistant.runModelSession({
+    context.registerAssistantQuestionHandler(
+      { prompt: GROUNDED_ANSWER_PROMPT, tools: [...ASSISTANT_TOOLS] },
+      (input, runModelSession) => runModelSession({
       ...input,
       policy: { prompt: GROUNDED_ANSWER_PROMPT, tools: [...ASSISTANT_TOOLS] },
-    }))
+      }),
+    )
   },
 }
