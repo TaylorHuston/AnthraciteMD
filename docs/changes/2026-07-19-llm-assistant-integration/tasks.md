@@ -7,7 +7,7 @@ status: in_progress
 
 - Last completed action: restored the active OAuth flow after Settings remount so an owner does not receive a conflicting second start.
 - Next action: replan the Assistant policy/retrieval ownership boundary before Context or bundled-plugin work.
-- Active branch/ref: `change/llm-assistant-integration` at OAuth selection-ID checkpoint `6c3274e`.
+- Active branch/ref: `change/llm-assistant-integration` at browser-authorization-link checkpoint `1f86f4d`.
 - Expected dirty files: bundled Assistant plugin/conformance, Context browser components/tests, deterministic fake-runtime E2E, and this ledger.
 - Known blockers: accepted design/ADR assigns Assistant prompt, retrieval, and tool policy to the bundled plugin, but current committed routes run Pi and retrieval directly in core services. A thin plugin would not satisfy that ownership rule; resolve this through `/sdd-change --replan` before Context or bundled-plugin work. The isolated Settings OAuth presentation refinement does not alter that ownership. A separate owner-completed Codex OAuth is still required for live-provider verification.
 
@@ -121,7 +121,7 @@ status: in_progress
 | 2026-07-20 | GMD-004/S1 R1-S2a OAuth selection hierarchy | main | `apps/web/src/SettingsPanel.tsx`, `AssistantSettings.css`, Settings component tests | Replaced the ambiguous native inline select with a radio-card choice group, a selected-choice primary action, and a quiet cancellation action; the dynamic provider options and normalized answer/cancel contracts are unchanged. | `b2f46f9` |
 | 2026-07-20 | GMD-004/S1 R1-S2b active OAuth recovery | main | OAuth manager, active-flow contract/route, Settings component tests | The owner can remount Settings during an active Codex flow and recover the same normalized prompt rather than attempt a conflicting second start. | `9c1b8a8` |
 | 2026-07-20 | GMD-004/S1 R1-S2c provider selection-ID bridge | main | Pi OAuth callback adapter and OAuth manager tests | Mapped the Pi provider's `id` option shape through the normalized selection prompt, so the chosen `browser` or `device_code` value reaches Pi instead of being rejected as stale. | `6c3274e` |
-| 2026-07-20 | GMD-004/S1 R1-S1a browser-login link | main | OAuth contract/manager and Settings component tests | Retained Pi’s transient authorization URL only on the active normalized flow, rendered a secure browser-login link, and cleared it from terminal summaries. | commit pending |
+| 2026-07-20 | GMD-004/S1 R1-S1a browser-login link | main | OAuth contract/manager and Settings component tests | Retained Pi’s transient authorization URL only on the active normalized flow, rendered a secure browser-login link, and cleared it from terminal summaries. | `1f86f4d` |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
