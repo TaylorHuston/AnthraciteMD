@@ -203,6 +203,7 @@ function Drawer({ name, onClose, children }: { name: DrawerName; onClose: () => 
     previousFocus.current = document.activeElement as HTMLElement | null
     const drawer = drawerRef.current
     const background = drawer?.parentElement ? [...drawer.parentElement.parentElement!.children].filter((item) => item !== drawer.parentElement) as HTMLElement[] : []
+    const priorInert = new Map(background.map((item) => [item, item.inert]))
     const priorOverflow = document.body.style.overflow
     background.forEach((item) => { item.inert = true })
     document.body.style.overflow = 'hidden'
@@ -211,7 +212,7 @@ function Drawer({ name, onClose, children }: { name: DrawerName; onClose: () => 
     window.addEventListener('keydown', closeOnEscape)
     return () => {
       window.removeEventListener('keydown', closeOnEscape)
-      background.forEach((item) => { item.inert = false })
+      background.forEach((item) => { item.inert = priorInert.get(item) ?? false })
       document.body.style.overflow = priorOverflow
       previousFocus.current?.focus()
     }

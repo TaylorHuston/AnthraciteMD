@@ -223,6 +223,8 @@ describe('GMD-002/S1 responsive browse shell', () => {
     const user = userEvent.setup()
     render(<App />)
     const opener = await screen.findByRole('button', { name: 'Settings' })
+    const context = screen.getByRole('complementary', { name: 'Note context' }) as HTMLElement
+    context.inert = true
     await user.click(opener)
     const modal = screen.getByRole('dialog', { name: 'Settings' })
     expect(modal).toHaveClass('modal-dialog')
@@ -238,6 +240,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Settings' })).not.toBeInTheDocument()
     expect(document.body.style.overflow).toBe('')
+    expect(context.inert).toBe(true)
     expect(opener).toHaveFocus()
 
     await user.click(opener)
