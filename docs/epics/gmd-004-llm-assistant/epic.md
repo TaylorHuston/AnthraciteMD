@@ -264,15 +264,16 @@ None for the accepted read-only Assistant slice.
 | S2/R1-S2, S2/R1-S3 | `apps/server/app/assistant/question_service.test.ts` | Only brokered tools can produce sources; no-read replies become honest no-evidence failures; disconnected, empty, concurrent, and follow-up questions are handled deterministically. | focused automated passing |
 | S2/R1-S1 | `packages/contracts/src/index.test.ts`, `packages/plugin-sdk/src/index.test.ts`, `plugins/assistant/src/index.test.ts`, `apps/server/tests/plugins/plugin_runtime_service.test.ts`, and `apps/server/tests/http/authentication.test.ts` | Bounded policies reject unknown/duplicate tools; the runner exists only during one dispatched question and accepts only its registered policy; activation-time/fabricated access fails closed; the static bundle sends its prompt/tool list, and the production host lists and dispatches the active contribution. | focused automated passing |
 | S2/R1-S1 | `apps/server/tests/plugins/plugin_runtime_service.test.ts` | A production host dispatches through the active Assistant handler and returns unavailable immediately after the Assistant is disabled. | focused automated passing |
+| S2/R1-S1, S2/R3-S1 | `apps/server/tests/http/authentication.test.ts` — `dispatches an authenticated, XSRF-protected grounded question and persists the canonical turn` | A disposable real HTTP server rejects unauthenticated/missing-XSRF requests, dispatches through the active bundle, returns service-derived provenance without a host path, and commits the completed turn under `.graphitemd/conversations`. | focused automated passing 2026-07-20 |
+| S2/R1-S1 | `apps/server/app/assistant/pi_runtime_boundary.test.ts` | Pi uses in-memory settings/session managers, disables automatic resource discovery, admits only the declared custom tool, prevents prompt-template expansion, and always unsubscribes/disposes the ephemeral session. | focused automated passing 2026-07-20 |
 | S2/R4-S1, S2/R4-S3 | `apps/web/src/AssistantContext.test.tsx` and `apps/web/src/App.test.tsx` | The connected composer retains a prompt while busy, announces busy/error state, prevents duplicate submit, exposes a retry action, renders returned service sources, and directs disconnected owners to Settings. | focused automated passing |
 | S2/R4-S1 | `apps/web/src/App.test.tsx` | Active descriptor contributions mount and disappear with plugin lifecycle. | focused automated passing |
-| S2/R4-S1 | direct authenticated Vite/agent-browser Context inspection | The active Assistant descriptor renders beside System Status with a clear disconnected handoff and no console or overlay error. | rendered desktop disconnected state passing |
+| S2/R4-S1, S2/R4-S2, S2/R4-S3 | `tests/e2e/foundation.spec.ts` — production owner path | A production-built server with an explicit test-only grounded runtime renders the contained desktop Context panel and a 390px Context drawer; it proves busy/error/retry and answer/source visibility, long-content scrolling, no horizontal overflow, focus restoration, and a question-route 401 returning to login without leaving the drawer mounted. | rendered browser passing 2026-07-20 |
+| S2/R1-S1, S2/R3-S1, S2/R4 | Owner-confirmed live playtest, 2026-07-22 | A connected Codex run against the disposable `Welcome.md` completed with provider `openai-codex`, model `gpt-5.4`, and a service-derived `Welcome.md` source; its canonical conversation record contains no host paths, while machine state and credential files retain owner-only permissions and the service log contains no question or credential content. | live-provider and manual confirmation passing |
 
 #### Verification Gaps
 
-- `S2/R1-S1`: A live connected Codex model session, deterministic production fake-runtime route, and direct Pi allowlist characterization are not verified yet.
-- `S2/R4-S2`: Narrow rendered Context-drawer inspection remains pending.
-- `S2/R4-S3`: Session-expiry rendering is component-covered but not yet verified in an end-to-end browser journey.
+None for the accepted read-only Assistant slice.
 
 #### Story Notes
 

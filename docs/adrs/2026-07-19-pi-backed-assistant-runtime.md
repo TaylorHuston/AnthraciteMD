@@ -1,6 +1,6 @@
 # ADR: Pi-Backed Assistant Runtime And Split Storage Boundary
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-19
 - Related change: `docs/changes/2026-07-19-llm-assistant-integration/`
 - Related Epics / Stories: `docs/epics/gmd-004-llm-assistant/epic.md` (`GMD-004/S1`, `GMD-004/S2`)

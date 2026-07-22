@@ -76,7 +76,7 @@ export function AssistantContext({ title, onSessionExpired, onOpenSettings, onOp
       <div className="assistant-turns" aria-live="polite">{turns.map((turn) => <article key={turn.turnId} className="assistant-turn">
         <p className="assistant-question">{turn.question}</p>
         <p>{turn.answer}</p>
-        {turn.sources.length > 0 && <ul className="assistant-sources" aria-label="Sources">{turn.sources.map((source) => <li key={source.resourceId}><button type="button" onClick={() => onOpenNote(source.resourceId)}>{source.displayPath}</button></li>)}</ul>}
+        {turn.sources.length > 0 && <section className="assistant-evidence" aria-label="Sources used"><h3>Sources used</h3><ul className="assistant-sources">{turn.sources.map((source) => <li key={source.resourceId}><button type="button" onClick={() => onOpenNote(source.resourceId)}>{source.displayPath}</button></li>)}</ul></section>}
       </article>)}</div>
       <form className="assistant-composer" onSubmit={(event) => void ask(event)} aria-busy={asking}>
         <label htmlFor={questionId}>Ask Codex</label>

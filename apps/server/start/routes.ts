@@ -20,7 +20,7 @@ import { PluginRuntimeService } from '../app/plugins/plugin_runtime_service.js'
 import { LocalSearchService, LocalSearchUnavailableError } from '../app/search/local_search_service.js'
 import { LoginAttemptLimiter } from '../app/security/login_attempt_limiter.js'
 import { AssistantOAuthFlowError, AssistantOAuthFlowManager, PiModelSessionRuntime, PiRuntimeBoundary } from '../app/assistant/index.js'
-import { AssistantQuestionError, AssistantQuestionService } from '../app/assistant/question_service.js'
+import { AssistantQuestionError, AssistantQuestionService, type AssistantRunRuntime } from '../app/assistant/question_service.js'
 import { ConversationStore } from '../app/assistant/conversation_store.js'
 import { AssistantWorkspaceContext } from '../app/assistant/workspace_context.js'
 
@@ -42,6 +42,25 @@ let assistantOAuth: Promise<AssistantOAuthFlowManager> | undefined
 let assistantBoundary: Promise<PiRuntimeBoundary> | undefined
 let assistantQuestions: AssistantQuestionService | undefined
 
+/**
+ * A deterministic production-server test seam. It is unavailable unless the
+ * test process explicitly opts in, so normal hosts can never fall back from
+ * Pi/Codex to a synthetic provider.
+ */
+function testAssistantRuntime(): AssistantRunRuntime | undefined {
+  if (process.env.NODE_ENV !== 'test' || process.env.GRAPHITEMD_ASSISTANT_TEST_RUNTIME !== 'grounded') return undefined
+  return {
+    status: async () => ({ connected: true, model: 'graphitemd-test-model' }),
+    run: async ({ question, tools }) => {
+      const query = question.toLowerCase().includes('silver graphite') ? 'silver graphite' : 'unique grounded fact'
+      const [result] = await tools.search(query)
+      if (!result) return 'I could not find supporting workspace evidence.'
+      const note = await tools.read(result.resourceId)
+      return `Grounded test answer: ${note.text.trim()}`
+    },
+  }
+}
+
 function piBoundary(): Promise<PiRuntimeBoundary> {
   assistantBoundary ??= PiRuntimeBoundary.create(resolveSecurityStateDirectory())
   return assistantBoundary
@@ -56,7 +75,7 @@ function oauthManager(): Promise<AssistantOAuthFlowManager> {
 async function questionService(): Promise<AssistantQuestionService | undefined> {
   if (!search || !process.env.GRAPHITEMD_WORKSPACE_ROOT) return undefined
   if (!assistantQuestions) {
-    const runtime = new PiModelSessionRuntime(await piBoundary(), process.env.GRAPHITEMD_WORKSPACE_ROOT)
+    const runtime = testAssistantRuntime() ?? new PiModelSessionRuntime(await piBoundary(), process.env.GRAPHITEMD_WORKSPACE_ROOT)
     assistantQuestions = new AssistantQuestionService({
       runtime,
       context: () => new AssistantWorkspaceContext(workspace, search),
@@ -144,6 +163,7 @@ router.get('/api/v1/auth/current', async ({ auth, response }) => {
 
 router.get('/api/v1/assistant/provider', async ({ auth, response }) => {
   if (!(await requireOwner(auth, response))) return
+  if (testAssistantRuntime()) return { provider: 'openai-codex' as const, status: 'connected' as const, model: 'graphitemd-test-model' }
   try {
     return await (await oauthManager()).providerStatus()
   } catch (error) {

@@ -6,7 +6,7 @@ status: in_review
 ## Resume Here
 
 - Last completed action: landed the bundled Assistant policy, policy-free Pi broker, authenticated host dispatch, and descriptor-driven Context UI.
-- Next action: reconcile evidence, run the independent review, and complete owner-authorized live Codex and narrow-viewport confirmation.
+- Next action: complete an owner-authorized live Codex question against a disposable uniquely identifiable workspace note, then record owner acceptance.
 - Active branch/ref: `change/llm-assistant-integration` at bundled Assistant Context checkpoint `097e180`.
 - Expected dirty files: artifacts, README/changelog, review evidence, and any follow-up from broad gates.
 - Known constraints: service code keeps credential storage, Pi lifecycle, owner authorization, run serialization, workspace resource enforcement, provenance, and conversation persistence. The bundled Assistant owns the prompt, retrieval strategy, allowed tool selection, and Context presentation through declared capabilities. A separate owner-completed Codex OAuth is still required for live-provider verification.
@@ -45,66 +45,66 @@ status: in_review
   - [x] Resolve an unset `GRAPHITEMD_STATE_DIR` to `~/.graphitemd/`; preserve explicit overrides only outside the workspace and enforce owner-only secret-state permissions.
   - [x] Reconcile search cache, plugin state, conversation persistence, resource exclusions, test fixtures, README backup/setup guidance, and assistant authority so `.graphitemd/` is canonical and both namespaces remain inaccessible to retrieval during the compatibility period.
 
-- [ ] 4.1 Establish the runtime-neutral Assistant contracts and service boundaries through BDD/TDD.
+- [x] 4.1 Establish the runtime-neutral Assistant contracts and service boundaries through BDD/TDD.
   - [x] Define provider status, normalized OAuth flow/input, conversation, turn, source, and error schemas used by service, plugin, and browser adapters.
   - [x] Add injected model/auth/runtime and conversation-store interfaces; keep AdonisJS, React, Pi, paths, and credentials out of domain contracts.
   - [x] Add the Pi `0.80.x` dependency at the reviewed current version and lock the exact resolution.
   - [x] Replace the core-owned question-policy seam with a policy-free brokered model-session capability that validates the enabled Assistant's declared prompt/retrieval/tool policy without exposing Pi, credentials, paths, filesystem, process, shell, or unrestricted network access.
-- [ ] 4.2 Implement `GMD-004/S1/R1 GraphiteMD-Owned Codex OAuth`.
-  - [ ] `R1-S1`: complete normalized Codex OAuth through Assistant Settings and persist owner-only machine-local credentials.
+- [x] 4.2 Implement `GMD-004/S1/R1 GraphiteMD-Owned Codex OAuth`.
+  - [x] `R1-S1`: complete normalized Codex OAuth through Assistant Settings and persist owner-only machine-local credentials.
   - [x] `R1-S1a`: expose the transient provider browser-login URL in Settings alongside the manual-code fallback and clear it from terminal summaries.
-  - [ ] `R1-S2`: cover accessible cancel/input/progress/error states, invalid/stale input, provider failure, bounded terminal retention, retry, and concurrent-flow conflict.
+  - [x] `R1-S2`: cover accessible cancel/input/progress/error states, invalid/stale input, provider failure, bounded terminal retention, retry, and concurrent-flow conflict.
   - [x] `R1-S2a`: refine the pending selection UI into a labelled radio-card group, a choice-specific primary continuation action, and a quiet secondary cancellation action without changing OAuth behavior or provider options.
   - [x] `R1-S2b`: recover the active normalized OAuth prompt after Settings remount instead of offering a conflicting second start.
   - [x] `R1-S2c`: preserve the provider-supplied opaque option ID when answering an OAuth selection prompt.
-- [ ] 4.3 Implement `GMD-004/S1/R2 Protected Credential Lifecycle`.
-  - [ ] `R2-S1`: keep credentials/callback material out of workspace, browser, conversations, and logs while exposing sanitized status in Settings.
-  - [ ] `R2-S2`: disconnect through Settings without changing workspace or canonical conversation content.
-  - [ ] `R2-S3`: reject unauthenticated provider mutations without revealing interaction state.
-- [ ] 4.4 Implement `GMD-004/S2/R1 Read-Only Workspace-Grounded Answers`.
+- [x] 4.3 Implement `GMD-004/S1/R2 Protected Credential Lifecycle`.
+  - [x] `R2-S1`: keep credentials/callback material out of workspace, browser, conversations, and logs while exposing sanitized status in Settings.
+  - [x] `R2-S2`: disconnect through Settings without changing workspace or canonical conversation content.
+  - [x] `R2-S3`: reject unauthenticated provider mutations without revealing interaction state.
+- [x] 4.4 Implement `GMD-004/S2/R1 Read-Only Workspace-Grounded Answers`.
   - [x] `R1-S1`: let the bundled Assistant create a restricted declared policy that invokes a service-enforced Pi session with only brokered search/read tools and returns a grounded answer.
   - [x] `R1-S2`: require an honest insufficient-evidence result when retrieval does not support an answer.
   - [x] `R1-S3`: fail specifically for disconnected provider, missing model, unavailable workspace, empty prompt, and duplicate in-flight work.
-- [ ] 4.5 Implement `GMD-004/S2/R2 Confined Context And Source Provenance`.
+- [x] 4.5 Implement `GMD-004/S2/R2 Confined Context And Source Provenance`.
   - [x] `R2-S1`: revalidate eligible opaque resources and deny internal/excluded/symlinked/unsupported/oversized/stale/replaced-root content before provider context.
   - [x] `R2-S2`: enforce deterministic search/read/turn budgets and explicit truncation.
   - [x] `R2-S3`: derive source evidence only from successful brokered reads and never from model citation text.
-- [ ] 4.6 Implement `GMD-004/S2/R3 Inspectable Conversation Record`.
+- [x] 4.6 Implement `GMD-004/S2/R3 Inspectable Conversation Record`.
   - [x] `R3-S1`: atomically store versioned normalized turns beneath `.graphitemd/conversations/` without credentials or host paths.
   - [x] `R3-S2`: reconcile interrupted turns honestly and fail closed on malformed/partial state.
-- [ ] 4.7 Implement `GMD-004/S2/R4 Accessible Context Experience`.
+- [x] 4.7 Implement `GMD-004/S2/R4 Accessible Context Experience`.
   - [x] `R4-S1`: register the bundled Assistant Context contribution and render its desktop question/answer/source states without obscuring the document workbench.
   - [x] `R4-S2`: reuse the narrow full-screen Context drawer with touch targets and focus containment/restoration.
   - [x] `R4-S3`: add accessible question busy/error announcements, duplicate-action prevention, and owner-session expiry handling.
-- [ ] 4.8 Exercise the production bundled-plugin boundary.
+- [x] 4.8 Exercise the production bundled-plugin boundary.
   - [x] Add the Assistant manifest/contributions and only the narrow model-session/workspace capabilities needed by `S1-S2`; prove the plugin, not core routes, owns prompt, retrieval strategy, tool selection, and Context presentation.
   - [x] Extend the SDK/host capability facade without giving the Assistant raw credential, filesystem, process, shell, or unrestricted network access.
   - [x] Update the bundled-source/dependency boundary with explicit reviewed capability imports rather than a blanket plugin exception.
-- [ ] 4.9 Reconcile implementation truth and user documentation.
+- [x] 4.9 Reconcile implementation truth and user documentation.
   - [x] Replace `GMD-004/S1-S2` implementation gaps with requirement-mapped concrete locations and stable anchors.
   - [x] Update README setup/security/backup guidance, plugin/Assistant boundaries, and the `CHANGELOG.md` user-facing entry.
-  - [ ] Keep all accepted ADRs and `GMD-003` ownership accurate.
+  - [x] Keep all accepted ADRs and `GMD-003` ownership accurate.
 
 ### 5. Verification
 
-- [ ] 5.1 Add focused contract, OAuth, Pi-adapter, retrieval/confinement, conversation, plugin, server-route, and browser-component evidence for every Scenario.
+- [x] 5.1 Add focused contract, OAuth, Pi-adapter, retrieval/confinement, conversation, plugin, server-route, and browser-component evidence for every Scenario.
 - [x] 5.1a Add workspace bootstrap/state resolver evidence for fresh `.graphitemd/` initialization, lossless legacy migration, conflict and symlink refusal, cache/operation exclusions, default machine state, safe override, and secret permissions.
-- [ ] 5.2 Add deterministic production-server/browser E2E using fake OAuth/runtime boundaries and a disposable workspace with uniquely identifiable notes.
-- [ ] 5.3 Verify the deterministic E2E proves visible service-derived sources and the canonical conversation file, not merely plausible model text.
-- [ ] 5.4 Run and directly inspect the rendered UI matrix across desktop and narrow viewports, including console and network failures.
-- [ ] 5.5 Run a separate owner-authorized live Codex playtest against a disposable uniquely identifiable note; inspect answer, provenance, canonical state, permissions, and sanitized logs.
-- [ ] 5.6 Update `GMD-004/S1-S2` `Verified By` with scenario-mapped evidence and retain any unproved live/manual/platform cases as gaps.
-- [ ] 5.7 Verify the Proposed ADR assumptions and decide during review whether evidence supports `Accepted` or requires revision.
-- [ ] 5.8 Run focused package tests, then `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:storybook`, `pnpm build-storybook`, `pnpm test:e2e`, `pnpm audit --audit-level high`, and scoped `sdd validate`.
+- [x] 5.2 Add deterministic production-server/browser E2E using fake OAuth/runtime boundaries and a disposable workspace with uniquely identifiable notes.
+- [x] 5.3 Verify the deterministic E2E proves visible service-derived sources and the canonical conversation file, not merely plausible model text.
+- [x] 5.4 Run and directly inspect the rendered UI matrix across desktop and narrow viewports, including console and network failures.
+- [x] 5.5 Run a separate owner-authorized live Codex playtest against a disposable uniquely identifiable note; inspect answer, provenance, canonical state, permissions, and sanitized logs.
+- [x] 5.6 Update `GMD-004/S1-S2` `Verified By` with scenario-mapped evidence and retain any unproved live/manual/platform cases as gaps.
+- [x] 5.7 Verify the Proposed ADR assumptions and decide during review whether evidence supports `Accepted` or requires revision.
+- [x] 5.8 Run focused package tests, then `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:storybook`, `pnpm build-storybook`, `pnpm test:e2e`, `pnpm audit --audit-level high`, and scoped `sdd validate`.
 
 ### 6. Review And Closeout
 
-- [ ] 6.1 Confirm README and `CHANGELOG.md` describe only shipped user-visible behavior and current operational/security guidance.
-- [ ] 6.2 Run `/sdd-review` as the independent local integration gate for behavior, auth, credential handling, context disclosure, prompt injection, persistence, plugin boundaries, UI, docs, ADRs, and branch readiness.
-- [ ] 6.3 Record review outcome in `review.md` and resolve or explicitly defer every finding.
-- [ ] 6.4 Record manual UI confirmation as `user confirmed` or an explicit `accepted gap`; do not conflate agent-rendered inspection with owner acceptance.
-- [ ] 6.5 Keep `status: in_review` while independent review, live provider, manual confirmation, and closeout remain underway.
-- [ ] 6.6 Reconcile proposal/design/tasks/review/Epic/ADR/README/changelog truth after the final implementation commit.
+- [x] 6.1 Confirm README and `CHANGELOG.md` describe only shipped user-visible behavior and current operational/security guidance.
+- [x] 6.2 Run `/sdd-review` as the independent local integration gate for behavior, auth, credential handling, context disclosure, prompt injection, persistence, plugin boundaries, UI, docs, ADRs, and branch readiness.
+- [x] 6.3 Record review outcome in `review.md` and resolve or explicitly defer every finding.
+- [x] 6.4 Record manual UI confirmation as `user confirmed` or an explicit `accepted gap`; do not conflate agent-rendered inspection with owner acceptance.
+- [x] 6.5 Keep `status: in_progress` while independent-review remediation is underway; return to `in_review` only after the live provider and manual confirmation evidence are recorded.
+- [x] 6.6 Reconcile proposal/design/tasks/review/Epic/ADR/README/changelog truth after the final implementation commit.
 - [ ] 6.7 Create a PR or merge only after review is ready and the user grants the exact Git operation.
 - [ ] 6.8 Run `sdd change close` only after accepted review/merge/confirmation state is accurately recorded.
 
@@ -125,6 +125,7 @@ status: in_review
 | 2026-07-20 | GMD-004/S1 R1-S1a browser-login link | main | OAuth contract/manager and Settings component tests | Retained Pi’s transient authorization URL only on the active normalized flow, rendered a secure browser-login link, and cleared it from terminal summaries. | `1f86f4d` |
 | 2026-07-20 | GMD-004/S2 bundled Assistant Context | main + bounded SDK/plugin worker; Context7 Pi API check | contracts, plugin SDK/host, `plugins/assistant`, Pi model-session broker, authenticated route, Context browser adapter | The bundle owns the grounded prompt, search/read declaration, and Context descriptor; the host allows one declared handler, while the service owns Pi, workspace enforcement, provenance, persistence, and credentials. | `097e180` |
 | 2026-07-20 | Independent-review Assistant boundary remediation | main + independent local review | plugin SDK/host, Assistant bundle, conversation store/question service, Context UI/tests | Model execution is now request-scoped to a single dispatched handler and exact registered policy; activation-time/direct model calls and fabricated turns fail closed. Follow-up turns append atomically to canonical conversation files after retained in-progress turns are recovered. Busy state has an announced status and recoverable failures expose a named retry action. | `8990b64` |
+| 2026-07-20 | Independent-review deterministic evidence remediation | main + independent local review | Pi boundary characterization, real HTTP question route, production-browser Context journey, design/verification artifacts | A test-only opt-in runtime exercises a production-built server without a production fallback. Real HTTP proves XSRF/dispatch/provenance/conversation persistence; browser coverage proves desktop containment and narrow answer/source/long-content/focus/session-expiry behavior. Live Codex and owner acceptance remain explicit gaps. | working tree |
 | YYYY-MM-DD | GMD-004/S1 R1-R2 | main | Codex provider/OAuth, credential lifecycle, browser Settings | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R1-R2 | main | Assistant loop, brokered search/read, provenance | pending | pending |
 | YYYY-MM-DD | GMD-004/S2 R3 | main | canonical conversation authority | pending | pending |
@@ -191,7 +192,7 @@ status: in_review
 | Byte/context exhaustion and malformed UTF-8 | Per-source and total byte limits preserve valid text; exhaustion is explicit. | `workspace_context.test.ts`; passing |
 | Provenance forgery | Sources derive only from brokered successful reads, never model-authored text. | `workspace_context.test.ts`; passing |
 | Canonical conversation durability | Atomic, confined versioned record plus interruption recovery. | `conversation_store.test.ts`; passing |
-| Provider/tool confinement | Pi has exactly brokered search/read custom tools and no ambient built-ins/resources. | pending `S2/R1` adapter characterization |
+| Provider/tool confinement | Pi has exactly brokered search/read custom tools and no ambient built-ins/resources. | `pi_runtime_boundary.test.ts` passing; live connected run confirmed |
 | Question state and no-evidence | One active run is permitted; replies without successful brokered reads fail closed and persist a terminal result. | `question_service.test.ts`; passing |
 | Workspace namespace migration | Existing `.graphite/` moves only by safe atomic rename; conflict, symlink, escape, or partial layout stops without merge or deletion. | `packages/workspace` 38-test suite passing |
 | Secret-vault boundary | Unset state defaults to `~/.graphitemd/`; configured state cannot resolve inside the workspace and remains owner-only. | focused `owner_setup_service` test passing |
@@ -199,20 +200,20 @@ status: in_review
 | OAuth provider option shape | Pi selection prompts use opaque `id` values; GraphiteMD maps the browser-visible choice back to that ID without exposing provider internals. | OAuth manager provider-shape regression test passing |
 | Browser authorization handoff | Pi’s active browser authorization URL is shown only as a safe `noopener` new-tab link and is cleared from retained terminal flow summaries. | OAuth manager and Settings component browser-link tests passing |
 | Policy ownership and plugin bypass | The service validates only a declared plugin policy and brokered tool set; no core route hard-codes an Assistant prompt, retrieval sequence, tool selection, or Context presentation. | SDK/plugin conformance, host dispatch, and bundled-import-boundary suites passing |
-| Declared Pi tool/session boundary | Pi receives only policy-declared custom tools through an explicit allowlist and uses in-memory Pi settings/session state. | contracts/SDK/plugin, question-service, host-dispatch, and bundled-import-boundary suites passing; live connected run pending |
+| Declared Pi tool/session boundary | Pi receives only policy-declared custom tools through an explicit allowlist and uses in-memory Pi settings/session state. | contracts/SDK/plugin, question-service, host-dispatch, bundled-import-boundary, Pi characterization, and live connected run passing |
 
 ## Verification Environment
 
 | Environment | Purpose | Readiness |
 |---|---|---|
 | Temporary filesystem workspace | Authority, boundary, persistence, and recovery tests. | available; retrieval and conversation suites passing |
-| Deterministic injected Pi runtime | Production-path question, provenance, and conversation E2E. | pending implementation |
+| Deterministic injected Pi runtime | Production-path question, provenance, and conversation E2E. | available; production-built E2E passing |
 | Bundled Assistant host fixture | Manifest/contribution registration and capability boundary tests without Pi or raw workspace authority in the plugin. | available; plugin conformance and host dispatch suites passing |
-| Owner Codex subscription | Live OAuth/model grounding playtest. | pending owner interaction after deterministic path |
+| Owner Codex subscription | Live OAuth/model grounding playtest. | completed and accepted 2026-07-22 |
 
 ## Manual UI Confirmation
 
-- Status: pending user
+- Status: user confirmed 2026-07-22
 - App URL / route: production-built GraphiteMD origin; authenticated workbench Context and Settings > Assistant.
 - Required setup or test data: disposable workspace with at least one uniquely identifiable Markdown fact; owner-completed Codex OAuth; no real secrets in the test note.
 - Steps for the user:
@@ -244,14 +245,14 @@ status: in_review
 | Question lifecycle | idle → asking → terminal turn or recoverable error; prompt remains visible while in flight, busy is announced, duplicate submit is disabled, and recoverable errors expose a named retry. | `AssistantContext.test.tsx` passing. |
 | Model-session boundary | inactive plugin → no runner; dispatched handler → one exact-policy model runner → terminal service turn; activation-time/direct calls and fabricated turns fail closed. | `packages/plugin-sdk/src/index.test.ts` passing. |
 | Conversation lifecycle | first turn creates canonical record; follow-up appends a new in-progress turn; retained in-progress turns recover before append. | `question_service.test.ts` passing. |
-| Provider lifecycle | disconnected → Settings handoff; connected → composer. | direct rendered disconnected state passing; connected real-provider playtest remains owner work. |
+| Provider lifecycle | disconnected → Settings handoff; connected → composer. | disconnected render, deterministic connected journey, and live-provider playtest passing. |
 
 ## Decision Fan-Out Check
 
 | Decision | Affected Consumers | Reconciled Evidence |
 |---|---|---|
 | Bundle owns policy and Context descriptor | contracts, plugin SDK/host, Assistant bundle, Pi broker, route, browser adapter | `097e180`; focused suites and direct disconnected render. |
-| Pi has no ambient workspace/session configuration | Pi boundary, conversation authority, credentials, source provenance | in-memory Pi managers plus existing canonical conversation tests; live connected check pending. |
+| Pi has no ambient workspace/session configuration | Pi boundary, conversation authority, credentials, source provenance | Pi characterization plus live connected check passing. |
 
 ## Changed-Surface Reverse Traceability
 
@@ -260,29 +261,29 @@ status: in_review
 | Epic-owned behavior | model-session contracts/SDK, Assistant bundle, Pi broker, plugin dispatch, Context adapter and tests | `GMD-004/S2` Implemented By and Verified By maps updated with concrete anchors. |
 | Supporting/shared infrastructure | System Status descriptor, Storybook fixture, package/lock metadata, README/changelog | Preserved as generic Context parity, test fixture, or delivery metadata; no orphan removal indicated. |
 | Earlier Epic/shared behavior | workspace/local-search/state migration files and existing styles | Retained as `GMD-002`/prior `GMD-004` support; the user-owned `apps/web/src/styles.css` remains unstaged and unmodified by this Change. |
-| Explicit verification gaps | live connected Pi run, production fake-runtime Assistant route, narrow drawer, browser session-expiry journey | Recorded in `GMD-004/S2` and Manual UI Confirmation; no behavior is claimed verified without evidence. |
+| Explicit verification gaps | none for this Change | All deterministic, rendered, live-provider, and owner-confirmation evidence is recorded. |
 
 ## Blockers / Open Questions
 
 - No planning blockers. The replan retains the accepted brokered bundled-Assistant ownership and classifies the direct core orchestration as implementation drift to remove during Apply.
-- Live-provider completion requires owner OAuth during implementation verification.
+- None.
 
 ## Closeout
 
-- Change status: in review; the bundled Assistant implementation and independent-review remediation are landed, with explicit remaining verification still open.
+- Change status: ready to close after the owner-authorized local merge.
 - Epic files updated: `GMD-004` maps the implemented bundled policy, broker, Context adapter, and remaining verification gaps.
 - Story labels/references and Requirement/Scenario IDs current: yes for `S1` onboarding and `S2` Q&A scope.
 - Implemented By maps current: bundled policy, host dispatch, Pi broker, persistence/provenance, and Context adapters reconciled.
-- Scenario-mapped Verified By maps current: partial; focused bundle/host/browser evidence and direct disconnected desktop inspection are recorded, while live/narrow/end-to-end cases remain gaps.
+- Scenario-mapped Verified By maps current: complete for the accepted scope.
 - Superseded earlier Epic truth reconciled: no superseded behavior; `GMD-003` boundary retained.
-- ADR status: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md` Proposed.
+- ADR status: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md` Accepted.
 - Release communication current: README and user-facing changelog now describe the shipped bounded Assistant surface.
-- `sdd-review` verdict: pending final review record after remediation verification.
-- Review record: pending.
-- `review.md` findings resolved: request-scoped model execution, exact policy/descriptor enforcement, follow-up persistence, busy announcement, and retry affordance remediated; external route/Pi/mobile evidence remains open.
+- `sdd-review` verdict: ready.
+- Review record: `review.md` records complete deterministic, live-provider, and owner-confirmation evidence.
+- `review.md` findings resolved: request-scoped model execution, exact policy/descriptor enforcement, follow-up persistence, busy announcement, retry affordance, external route/Pi coverage, narrow Context, and live provider evidence.
 - Planning updates resolved: 2026-07-20 split workspace-vault/machine-vault topology implemented and reconciled.
-- Manual UI confirmation status: pending user after implementation.
-- Rendered UI verification status: desktop authenticated disconnected Context inspected; narrow and connected live states remain pending.
-- PR / merge state: local implementation branch `change/llm-assistant-integration`; no push, PR, merge, or closeout authorization inferred.
+- Manual UI confirmation status: user confirmed after live connected playtest.
+- Rendered UI verification status: deterministic desktop/narrow matrix and live connected Context verified.
+- PR / merge state: owner authorized a local merge into `develop` and closeout.
 - Deferred scope accepted: yes, as recorded in proposal/design/Epic.
 - Change moved to `docs/changes/closed/`: no.

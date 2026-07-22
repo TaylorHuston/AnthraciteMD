@@ -40,6 +40,7 @@ describe('Assistant Context contribution', () => {
     }), { status: 200, headers: { 'content-type': 'application/json' } }))
 
     expect(await screen.findByText('The launch moved.')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Sources used' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Notes/Launch.md' }))
   })
 

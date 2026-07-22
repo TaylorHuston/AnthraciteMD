@@ -71,7 +71,7 @@ beforeAll(async () => {
   stateDirectory = await mkdtemp(join(tmpdir(), 'graphitemd-http-security-'))
   workspaceRoot = await mkdtemp(join(tmpdir(), 'graphitemd-http-workspace-'))
   await mkdir(join(workspaceRoot, 'Notes'))
-  await writeFile(join(workspaceRoot, 'Notes', 'Welcome.md'), '# Welcome\n', 'utf8')
+  await writeFile(join(workspaceRoot, 'Notes', 'Welcome.md'), '# Welcome\n\nUnique grounded fact: cobalt otter.\n', 'utf8')
   await new OwnerSetupService(stateDirectory).createOwner('correct horse battery staple')
 
   server = spawn(process.execPath, ['--import=@poppinss/ts-exec', 'bin/server.ts'], {
@@ -85,6 +85,7 @@ beforeAll(async () => {
       GRAPHITEMD_STATE_DIR: stateDirectory,
       GRAPHITEMD_WORKSPACE_ROOT: workspaceRoot,
       GRAPHITEMD_ALLOWED_ORIGINS: 'http://127.0.0.1:5173',
+      GRAPHITEMD_ASSISTANT_TEST_RUNTIME: 'grounded',
     },
     stdio: ['ignore', 'ignore', 'pipe'],
   })
@@ -118,9 +119,14 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
       fetch(`${origin}/api/v1/assistant/disconnect`, {
         method: 'POST', headers: { cookie: anonymous.cookie, 'x-xsrf-token': anonymous.token },
       }),
+      fetch(`${origin}/api/v1/assistant/questions`, {
+        method: 'POST', headers: { 'content-type': 'application/json', cookie: anonymous.cookie, 'x-xsrf-token': anonymous.token },
+        body: JSON.stringify({ question: 'What is the unique grounded fact?' }),
+      }),
     ])
-    expect(requests.map((response) => response.status)).toEqual([401, 401, 401, 401, 401])
+    expect(requests.map((response) => response.status)).toEqual([401, 401, 401, 401, 401, 401])
     expect(await Promise.all(requests.map((response) => response.json()))).toEqual([
+      { error: { code: 'unauthenticated', message: 'Authentication required.' } },
       { error: { code: 'unauthenticated', message: 'Authentication required.' } },
       { error: { code: 'unauthenticated', message: 'Authentication required.' } },
       { error: { code: 'unauthenticated', message: 'Authentication required.' } },
@@ -137,6 +143,34 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
       provider: 'openai-codex',
       status: expect.stringMatching(/^(disconnected|connected|unavailable|failed)$/),
     })
+  })
+
+  it('GMD-004/S2 R1-S1 dispatches an authenticated, XSRF-protected grounded question and persists the canonical turn', async () => {
+    const owner = await loginOwner()
+    const missingProof = await fetch(`${origin}/api/v1/assistant/questions`, {
+      method: 'POST', headers: { 'content-type': 'application/json', cookie: owner.cookie },
+      body: JSON.stringify({ question: 'What is the unique grounded fact?' }),
+    })
+    expect(missingProof.status).toBe(403)
+
+    const completed = await fetch(`${origin}/api/v1/assistant/questions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: owner.cookie, 'x-xsrf-token': owner.token },
+      body: JSON.stringify({ question: 'What is the unique grounded fact?' }),
+    })
+    expect(completed.status).toBe(200)
+    const turn = await completed.json() as {
+      conversationId: string; status: string; answer: string; sources: Array<{ displayPath: string }>
+    }
+    expect(turn).toMatchObject({
+      conversationId: expect.stringMatching(/^conv_/), status: 'completed', answer: expect.stringContaining('cobalt otter'),
+      sources: [expect.objectContaining({ displayPath: 'Notes/Welcome.md' })],
+    })
+    expect(JSON.stringify(turn)).not.toContain(workspaceRoot)
+
+    const record = JSON.parse(await readFile(join(workspaceRoot, '.graphitemd', 'conversations', `${turn.conversationId}.json`), 'utf8'))
+    expect(record.turns).toHaveLength(1)
+    expect(record.turns[0]).toMatchObject({ status: 'completed', answer: expect.stringContaining('cobalt otter') })
   })
 
   it('R2-S1 establishes an official server-owned session and protects workspace delivery', async () => {

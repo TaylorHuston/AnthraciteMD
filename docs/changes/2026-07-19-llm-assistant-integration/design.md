@@ -252,7 +252,7 @@ Select Option 1.
 1. The owner opens Context. If disconnected, the Assistant explains that Codex setup is required and offers `Connect Codex`/`Open Assistant settings`.
 2. Settings > Assistant shows provider status and starts the normalized OAuth flow. When the provider supplies an authorization URL, GraphiteMD presents an explicit secure OpenAI login link that opens in a new browser tab/window; any required provider prompt remains in the GraphiteMD dialog.
 3. After connection, Context exposes one labeled multiline question input and submit action.
-4. During the request, the prompt remains visible but duplicate submit is disabled; a live status names search/read/model phases without leaking content.
+4. During the request, the prompt remains visible but duplicate submit is disabled; a live status announces request progress without leaking content. Search/read/model phase detail is deferred until the runtime emits those normalized events.
 5. The completed answer appears with a separate `Sources used` list. Selecting a source may reuse the existing opaque note-open action when available; polished citation navigation is deferred.
 6. Failures preserve the question for retry and never replace the active note or dismiss the Context surface unexpectedly.
 
