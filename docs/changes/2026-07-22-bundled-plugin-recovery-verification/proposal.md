@@ -16,11 +16,11 @@ Add deterministic persisted enablement, restart, and interrupted-state recovery 
 
 ### New Epic Directories
 
-- `docs/epics/gmd-003-bundled-plugin-platform/`
+- None.
 
 ### Existing Epic Directory Updates
 
-- None proposed.
+- `docs/epics/gmd-003-bundled-plugin-platform/`
 
 ## Epic Story Changes
 

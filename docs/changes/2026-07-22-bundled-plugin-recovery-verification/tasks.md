@@ -1,12 +1,12 @@
 ---
-status: in_progress
+status: in_review
 ---
 # Tasks: Bundled Plugin Recovery Verification
 
 ## Resume Here
 
-- Last completed action: implemented and focused-verified per-bundle runtime recovery proof.
-- Next action: complete apply self-check, commit the R4-S3 phase, then transition to `in_review` for independent `/sdd-review`.
+- Last completed action: completed the implementation self-check and committed the per-bundle runtime recovery proof as `ae3891f`.
+- Next action: independent `/sdd-review` of the immutable candidate.
 - Active branch/ref: `change/bundled-plugin-recovery-verification`.
 - Expected dirty files: runtime, SDK, focused test, and this Change's GMD-003 reconciliation.
 - Known blockers: none identified yet
@@ -46,7 +46,7 @@ status: in_progress
 - [x] 4.4 When a new adapter, client, route, workspace, worker, migration, command, or similar surface parallels an established implementation, complete the applicable Pattern Parity Matrix rows and explain intentional divergences.
 - [x] 4.5 When the slice owns editable, autosaving, cached, routed, asynchronous, or identity-sensitive state, complete the applicable Stateful Transition Matrix rows.
 - [x] 4.6 Update Story-level Implemented By maps with current code locations.
-- [ ] 4.7 Commit every completed, verified, reconciled phase before beginning the next unless commits are explicitly disabled or prohibited.
+- [x] 4.7 Commit every completed, verified, reconciled phase before beginning the next unless commits are explicitly disabled or prohibited.
 
 ### 5. Verification
 
@@ -61,15 +61,15 @@ status: in_progress
 
 ### 6. Review And Closeout
 
-- [ ] 6.1 Update the project-defined release communication when `proposal.md` says release-communication impact is required or TBD.
+- [x] 6.1 Update the project-defined release communication when `proposal.md` says release-communication impact is required or TBD.
 - [ ] 6.2 Run `sdd-review` as the local PR gate for Requirements, Scenarios, Epic truth, tests, security, docs, release communication, ADR consistency, and branch readiness.
 - [ ] 6.3 Record review outcome as a `review.md` path, a clean review recorded in this ledger, or an explicit user-approved review waiver.
 - [ ] 6.4 Address any `review.md` findings or explicitly defer accepted non-blocking risks.
-- [ ] 6.5 Record manual UI confirmation status as `not applicable`, `pending user`, `user confirmed`, or `accepted gap`.
-- [ ] 6.6 Confirm proposal/design/tasks/review artifacts do not still claim completed work is not implemented, not verified, pending, or accepted under obsolete manual status vocabulary.
-- [ ] 6.7 Confirm machine-readable Change status agrees with Resume Here, checklist, review, manual confirmation, release communication, ADR, PR/merge, deferred-gap, and folder-location claims.
-- [ ] 6.8 Keep `status: in_review` while independent review and closeout gates are underway.
-- [ ] 6.9 Before `in_review`, record an immutable candidate commit, confirm intended implementation is committed, pass commit-sensitive contract/diff checks, and leave no required risk, fan-out, environment, or verification obligation silently pending.
+- [x] 6.5 Record manual UI confirmation status as `not applicable`, `pending user`, `user confirmed`, or `accepted gap`.
+- [x] 6.6 Confirm proposal/design/tasks/review artifacts do not still claim completed work is not implemented, not verified, pending, or accepted under obsolete manual status vocabulary.
+- [x] 6.7 Confirm machine-readable Change status agrees with Resume Here, checklist, review, manual confirmation, release communication, ADR, PR/merge, deferred-gap, and folder-location claims.
+- [x] 6.8 Keep `status: in_review` while independent review and closeout gates are underway.
+- [x] 6.9 Before `in_review`, record an immutable candidate commit, confirm intended implementation is committed, pass commit-sensitive contract/diff checks, and leave no required risk, fan-out, environment, or verification obligation silently pending.
 - [ ] 6.10 Create a PR or merge only after `sdd-review` is ready and the app branch policy plus user authorization allow it.
 - [ ] 6.11 After review/PR/merge/acceptance is complete and `status: in_review` remains accurate, run `sdd change close` for this Space and Change instead of writing a `closed` status.
 
@@ -79,7 +79,7 @@ Record meaningful Requirement, Scenario, enabling, or delegated slices as they h
 
 | Date | Slice | Agent / Guidance | Files / Areas | Result | Commit / Ref |
 |---|---|---|---|---|---|
-| 2026-07-22 | GMD-003/S1/R4-S3 | main; fresh-context discovery and coverage review | `packages/plugin-sdk`, production runtime test, GMD-003 map | Recovery now runs before every plugin activation; both current manifests have persistent lifecycle and interrupted-state proof. | commit pending |
+| 2026-07-22 | GMD-003/S1/R4-S3 | main; fresh-context discovery and coverage review | `packages/plugin-sdk`, production runtime test, GMD-003 map | Recovery now runs before every plugin activation; both current manifests have persistent lifecycle and interrupted-state proof. | `ae3891f` |
 
 ## Verification Ledger
 
@@ -175,12 +175,12 @@ Required for UI-bearing changes. If not applicable, record why.
 
 ## Review Handoff Candidate
 
-- Integration target / merge base: `develop`; checked after the implementation commit.
-- Candidate source commit: pending implementation commit.
+- Integration target / merge base: `develop` / `c0e80a653657204fb1057deee314dda5b3bc8da1`.
+- Candidate source commit: `ae3891f` (with documentation baseline `ad3e1b9`).
 - Source differs from target when implementation changed: yes.
-- Intended implementation fully committed: not yet.
+- Intended implementation fully committed: yes; ledger reconciliation pending this follow-up commit.
 - Unrelated dirty state preserved: yes.
-- Commit-sensitive generated-contract / diff / integration checks: pending implementation commit.
+- Commit-sensitive generated-contract / diff / integration checks: `git diff --check develop...ae3891f` passing; no generated contract applies.
 - Required risk, fan-out, environment, or verification rows still pending or blocked: no implementation blockers; R4-S2 process-kill/pathname-race limits remain deferred outside this Change.
 - Pattern parity and stateful transition matrices reconciled or not applicable with reason: reconciled; this uses the existing state-backend contract at the host activation boundary.
 - Evidence claims falsified against exact tests, assertions, routes, or observations: focused tests inspected and passed.
@@ -189,25 +189,26 @@ Required for UI-bearing changes. If not applicable, record why.
 ## Closeout
 
 - Change status:
-- Epic files updated:
-- Story labels/references and Requirement/Scenario IDs current:
-- Implemented By maps current:
-- Scenario-mapped Verified By maps current:
-- Superseded earlier Epic truth reconciled:
-- ADR status:
-- Release communication current:
-- `sdd-review` verdict:
-- Review record:
-- `review.md` findings resolved:
-- Planning updates resolved:
-- Implementation risk and confirmation rows resolved:
-- Pattern parity and stateful transition rows resolved:
-- Evidence-claim integrity checked:
-- Decision fan-out reconciled:
-- Verification environment obligations resolved:
-- Immutable review handoff candidate:
-- Manual UI confirmation status:
-- Rendered UI verification status:
-- PR / merge state:
-- Deferred scope accepted:
-- Change moved to `docs/changes/closed/`:
+- Change status: `in_review`.
+- Epic files updated: GMD-003; prior all-Epic audit reconciliation is committed in `ad3e1b9`.
+- Story labels/references and Requirement/Scenario IDs current: yes.
+- Implemented By maps current: yes.
+- Scenario-mapped Verified By maps current: yes.
+- Superseded earlier Epic truth reconciled: yes; Assistant's platform conformance is current scope while product behavior remains GMD-004.
+- ADR status: no ADR change required.
+- Release communication current: not required; no user-facing change.
+- `sdd-review` verdict: pending independent review.
+- Review record: no review record yet.
+- `review.md` findings resolved: not applicable until review.
+- Planning updates resolved: yes.
+- Implementation risk and confirmation rows resolved: yes; R4-S2 platform limit remains explicit and outside this Change.
+- Pattern parity and stateful transition rows resolved: yes.
+- Evidence-claim integrity checked: yes; fresh-context code/evidence review passed.
+- Decision fan-out reconciled: yes.
+- Verification environment obligations resolved: yes; disposable workspace, no provider/browser required.
+- Immutable review handoff candidate: `ae3891f` implementation commit plus this ledger reconciliation commit.
+- Manual UI confirmation status: not applicable; no UI change.
+- Rendered UI verification status: not applicable; no UI change.
+- PR / merge state: not created; no user authorization to push or merge.
+- Deferred scope accepted: R4-S2 process-kill durability and pathname race remain documented platform limits.
+- Change moved to `docs/changes/closed/`: no; review and user-authorized merge/closeout remain.

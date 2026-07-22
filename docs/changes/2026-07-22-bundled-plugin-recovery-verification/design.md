@@ -71,32 +71,21 @@ Use this section for non-trivial changes. If only one path is reasonable, record
 ### Option 1: Production Runtime Recovery Fixture
 
 - Summary: exercise each bundled manifest through `PluginRuntimeService` with disposable workspace state across restart and recoverable interrupted state.
-- User impact:
-- Implementation complexity:
-- Reversibility:
-- Client surfaces:
-- API / contract shape:
-- Frontend/backend boundary:
-- Data / schema impact:
-- Auth / security impact:
-- Testability:
-- Operational risk:
-- Fit with project conventions:
+- User impact: no new surface; malformed persisted state is reported as the plugin's existing activation failure.
+- Implementation complexity: small host activation guard plus focused real-filesystem tests.
+- Reversibility: remove the guard and tests if the platform later adopts a different lifecycle contract.
+- Client surfaces: existing plugin inventory receives the established `activation_failed` status.
+- API / contract shape: no new public contract; uses `PluginStateBackend.recovery()`.
+- Data / schema impact: none.
+- Auth / security impact: preserves fail-closed state handling and prevents a malformed temporary state from activating code.
+- Testability: disposable workspace fixture needs no provider credentials.
+- Operational risk: failed recovery isolates one plugin rather than preventing unrelated bundled plugins from activating.
+- Fit with project conventions: uses the production SDK and existing runtime state backend.
 
 ### Option 2: Expand The In-Memory Conformance Harness
 
 - Summary: give testkit a durable backend abstraction and require each bundle to run it.
-- User impact:
-- Implementation complexity:
-- Reversibility:
-- Client surfaces:
-- API / contract shape:
-- Frontend/backend boundary:
-- Data / schema impact:
-- Auth / security impact:
-- Testability:
-- Operational risk:
-- Fit with project conventions:
+- Rejected: it would still require a durable backend model and would prove a test abstraction rather than the workspace-bound production state path.
 
 ## Selected Approach
 
@@ -108,45 +97,37 @@ Not applicable: this change alters host activation and focused server tests only
 
 ## Client And API Boundary
 
-- Current clients:
-- Plausible future clients:
-- Reusable product capabilities:
-- API or typed contract:
-- OpenAPI plan, if HTTP-facing:
-- Backend platform exposed directly to clients?:
-- Client-specific presentation or local state:
-- Rationale:
+- Not changed. Existing inventory status is reused; no HTTP, typed client contract, or browser state changes are required.
 
 ## Alternatives Considered
 
-- Option:
-  - Why not:
+- Durable conformance-harness backend: rejected because it cannot replace a production workspace-path proof.
 
 ## Why This Approach
 
-Explain why the chosen approach is the right fit for this change.
+Recovery belongs at the host activation boundary, where every enabled plugin follows the same state contract. This closes the Assistant-specific hole without adding a special case or creating user-visible behavior.
 
 ## ADRs
 
 - Required: no
-- ADR path: `docs/adrs/yyyy-mm-dd-decision-title.md` or not applicable
-- Decision summary:
-- Reconsider when:
+- ADR path: not applicable
+- Decision summary: uses the accepted capability-mediated platform's existing state-recovery contract.
+- Reconsider when: community plugins introduce an isolated runtime or a different durable state contract.
 
 ## Implementation Constraints
 
-- None identified yet.
+- Keep failures plugin-local and use no live provider, account, or user workspace in tests.
 
 ## Verification Strategy
 
 - Focused automated tests: exact cases collectively enumerate every bundled plugin for persisted explicit enablement, complete temporary-state recovery, and malformed-state isolation.
 - Separate evidence types instead of treating all proof as interchangeable:
-  - Focused automated tests:
-  - Broad supporting gates:
-  - Deterministic E2E:
-  - Live-provider or external-service playtests:
-  - Manual UI confirmation:
-  - Debug/log inspection:
+  - Focused automated tests: production runtime and SDK suites.
+  - Broad supporting gates: root test, lint, and typecheck.
+  - Deterministic E2E: not applicable; no browser behavior changes.
+  - Live-provider or external-service playtests: not applicable; recovery is provider-free.
+  - Manual UI confirmation: not applicable; no browser behavior changes.
+  - Debug/log inspection: not required.
 
 ## Decisions
 
