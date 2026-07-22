@@ -4,6 +4,8 @@ All notable user-facing changes to GraphiteMD will be documented here.
 
 ## Unreleased
 
+## 0.1.0 - 2026-07-22
+
 ### Added
 
 - A responsive, self-hosted Markdown workbench for desktop and mobile browsers on private networks.
