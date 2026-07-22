@@ -60,3 +60,4 @@ No blocking or required findings remain.
 
 - 2026-07-20: Independent review remediated and reran deterministic full gates.
 - 2026-07-22: Owner completed the live provider playtest; service-derived provenance, canonical state, permissions, and logs were inspected. Verdict: ready.
+- 2026-07-22: Release PR feedback corrected retryable Assistant HTTP failures so they remain service-unavailable responses rather than invalid input. Fresh review at `7a401feedccbd427ce7e19bc59e118dc71686687` passed the focused HTTP test twice, the full 230-test suite, server typecheck/lint, production build, dependency audit, SDD validation, reverse traceability, code/security review, and artifact/integration rereview. Manual confirmation remains `user confirmed`; the correction does not alter the accepted UI flow.

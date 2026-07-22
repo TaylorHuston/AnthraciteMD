@@ -275,12 +275,12 @@ This ledger is chronological. Earlier pending results record the state at that d
 - Superseded earlier Epic truth reconciled: no superseded behavior; `GMD-003` boundary retained.
 - ADR status: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md` Accepted.
 - Release communication current: README and user-facing changelog now describe the shipped bounded Assistant surface.
-- `sdd-review` verdict: ready.
-- Review record: `review.md` records complete deterministic, live-provider, and owner-confirmation evidence.
+- `sdd-review` verdict: ready; release PR remediation received a fresh review at `7a401feedccbd427ce7e19bc59e118dc71686687`.
+- Review record: `review.md` records complete deterministic, live-provider, owner-confirmation, and release PR remediation evidence.
 - `review.md` findings resolved: request-scoped model execution, exact policy/descriptor enforcement, follow-up persistence, busy announcement, retry affordance, external route/Pi coverage, narrow Context, and live provider evidence.
 - Planning updates resolved: 2026-07-20 split workspace-vault/machine-vault topology implemented and reconciled.
 - Manual UI confirmation status: user confirmed after live connected playtest.
 - Rendered UI verification status: deterministic desktop/narrow matrix and live connected Context verified.
-- PR / merge state: owner authorized a local merge into `develop` and closeout.
+- PR / merge state: owner authorized a local merge into `develop` and closeout; release PR [#2](https://github.com/TaylorHuston/GraphiteMD/pull/2) is open from `develop` to `main`.
 - Deferred scope accepted: yes, as recorded in proposal/design/Epic.
 - Change moved to `docs/changes/closed/`: yes.
