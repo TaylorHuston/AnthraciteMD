@@ -105,8 +105,8 @@ status: in_review
 - [x] 6.4 Record manual UI confirmation as `user confirmed` or an explicit `accepted gap`; do not conflate agent-rendered inspection with owner acceptance.
 - [x] 6.5 Keep `status: in_progress` while independent-review remediation is underway; return to `in_review` only after the live provider and manual confirmation evidence are recorded.
 - [x] 6.6 Reconcile proposal/design/tasks/review/Epic/ADR/README/changelog truth after the final implementation commit.
-- [ ] 6.7 Create a PR or merge only after review is ready and the user grants the exact Git operation.
-- [ ] 6.8 Run `sdd change close` only after accepted review/merge/confirmation state is accurately recorded.
+- [x] 6.7 Create a PR or merge only after review is ready and the user grants the exact Git operation.
+- [x] 6.8 Run `sdd change close` only after accepted review/merge/confirmation state is accurately recorded.
 
 ## Implementation Ledger
 
