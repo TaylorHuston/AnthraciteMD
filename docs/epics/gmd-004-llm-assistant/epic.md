@@ -257,6 +257,7 @@ None for the accepted read-only Assistant slice.
 | S2/R1-S1 | `apps/server/app/assistant/question_service.test.ts#R1-S1 runs only brokered tools and persists the resulting service-derived sources` | Brokered grounded answer. | passing |
 | S2/R1-S2 | `apps/server/app/assistant/question_service.test.ts#R1-S2 produces an honest no-evidence terminal result when the runtime performs no successful read` | Honest no-evidence result. | passing |
 | S2/R1-S3 | `apps/server/app/assistant/question_service.test.ts#R1-S3 rejects disconnected, empty, and concurrent questions without starting ambiguous work` | Unavailable and duplicate-run handling. | passing |
+| S2/R1-S3 | `apps/server/tests/http/authentication.test.ts#GMD-004/S2 R1-S3 returns service unavailable for a concurrent question instead of invalid input` | The HTTP adapter does not misclassify a retryable duplicate run as invalid input after the plugin boundary normalizes it to unavailable. | passing |
 | S2/R2-S1 | `apps/server/app/assistant/workspace_context.test.ts#R2-S1 revalidates opaque resources and excludes internal or symlinked content before returning it to the model` | Context confinement. | passing |
 | S2/R2-S2 | `apps/server/app/assistant/workspace_context.test.ts#R2-S2 enforces deterministic per-source and total context budgets while recording truncation` | Bounded retrieval. | passing |
 | S2/R2-S3 | `apps/server/app/assistant/workspace_context.test.ts#R2-S3 derives source evidence only from successful brokered reads` | Source provenance. | passing |

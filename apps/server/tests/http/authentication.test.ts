@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -65,6 +65,20 @@ async function loginOwner(): Promise<{ cookie: string; token: string }> {
   expect(login.status).toBe(200)
   const cookie = `${responseCookies(login)}; XSRF-TOKEN=${encodeURIComponent(anonymous.token)}`
   return { cookie, token: anonymous.token }
+}
+
+async function waitForInProgressAssistantTurn(): Promise<void> {
+  const directory = join(workspaceRoot, '.graphitemd', 'conversations')
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      for (const name of await readdir(directory)) {
+        const record = JSON.parse(await readFile(join(directory, name), 'utf8')) as { turns?: Array<{ status?: string }> }
+        if (record.turns?.some((turn) => turn.status === 'in_progress')) return
+      }
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  throw new Error('Assistant question did not enter the in-progress state')
 }
 
 beforeAll(async () => {
@@ -171,6 +185,24 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
     const record = JSON.parse(await readFile(join(workspaceRoot, '.graphitemd', 'conversations', `${turn.conversationId}.json`), 'utf8'))
     expect(record.turns).toHaveLength(1)
     expect(record.turns[0]).toMatchObject({ status: 'completed', answer: expect.stringContaining('cobalt otter') })
+  })
+
+  it('GMD-004/S2 R1-S3 returns service unavailable for a concurrent question instead of invalid input', async () => {
+    const owner = await loginOwner()
+    const headers = { 'content-type': 'application/json', cookie: owner.cookie, 'x-xsrf-token': owner.token }
+    const first = fetch(`${origin}/api/v1/assistant/questions`, {
+      method: 'POST', headers, body: JSON.stringify({ question: 'Hold concurrent while finding the unique grounded fact.' }),
+    })
+    await waitForInProgressAssistantTurn()
+
+    const concurrent = await fetch(`${origin}/api/v1/assistant/questions`, {
+      method: 'POST', headers, body: JSON.stringify({ question: 'Can another question run now?' }),
+    })
+    expect(concurrent.status).toBe(503)
+    expect(await concurrent.json()).toEqual({
+      error: { code: 'provider_unavailable', message: 'The Assistant is unavailable.' },
+    })
+    expect((await first).status).toBe(200)
   })
 
   it('R2-S1 establishes an official server-owned session and protects workspace delivery', async () => {

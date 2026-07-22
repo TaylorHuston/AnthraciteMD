@@ -1,6 +1,6 @@
 # GraphiteMD
 
-GraphiteMD is being built as a self-hostable, document-native AI workbench around user-controlled Markdown workspaces. Its current foundation uses a persistent service for filesystem authority while responsive browser clients provide editing, search, and navigation without copying the workspace onto every device. Conversation and proposal review remain planned product capabilities.
+GraphiteMD is being built as a self-hostable, document-native AI workbench around user-controlled Markdown workspaces. Its current foundation uses a persistent service for filesystem authority while responsive browser clients provide editing, search, navigation, and read-only workspace-grounded Assistant questions without copying the workspace onto every device. Proposal review remains a planned product capability.
 
 The product is designed around four durable promises:
 
@@ -22,7 +22,7 @@ The foundation monorepo is active. AdonisJS owns the service boundary, React/Vit
 - Bundled plugin inventory, enablement, capability mediation, and inspectable namespaced state, demonstrated by System Status.
 - A bundled Codex Assistant Context contribution for read-only, workspace-grounded questions with visible service-derived sources after connection.
 
-AI interaction, proposal/grant workflows, community plugins, arbitrary plugin isolation, offline sync, and a dedicated mobile app remain outside this foundation slice.
+Assistant writes, proposal/grant workflows, community plugins, arbitrary plugin isolation, offline sync, and a dedicated mobile app remain outside this foundation slice.
 
 ## Local Development
 
@@ -85,5 +85,6 @@ The current target is a technically capable single owner on a trusted private ne
 - [Capability-mediated plugin platform](docs/adrs/2026-07-18-capability-mediated-plugin-platform.md)
 - [Filesystem-canonical workspace state](docs/adrs/2026-07-18-filesystem-canonical-workspace-state.md)
 - [Proposal-first agent authority](docs/adrs/2026-07-18-proposal-first-agent-authority.md)
+- [Pi-backed Assistant runtime](docs/adrs/2026-07-19-pi-backed-assistant-runtime.md)
 
 Epics and Stories are authoritative for implemented behavior and explicit remaining gaps. ADRs explain the cross-cutting technical constraints future implementation must respect.

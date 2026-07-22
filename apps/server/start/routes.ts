@@ -52,6 +52,9 @@ function testAssistantRuntime(): AssistantRunRuntime | undefined {
   return {
     status: async () => ({ connected: true, model: 'graphitemd-test-model' }),
     run: async ({ question, tools }) => {
+      if (question.toLowerCase().includes('hold concurrent')) {
+        await new Promise((resolve) => setTimeout(resolve, 2_000))
+      }
       const query = question.toLowerCase().includes('silver graphite') ? 'silver graphite' : 'unique grounded fact'
       const [result] = await tools.search(query)
       if (!result) return 'I could not find supporting workspace evidence.'
@@ -248,10 +251,7 @@ router.post('/api/v1/assistant/questions', async ({ auth, request, response }) =
     if (result.kind === 'handled') return result.turn
     if (result.kind === 'denied') return response.badRequest({ error: { code: 'invalid_input', message: 'The Assistant question is invalid.' } })
     return response.serviceUnavailable({ error: { code: 'provider_unavailable', message: 'The Assistant is unavailable.' } })
-  } catch (error) {
-    if (error instanceof AssistantQuestionError) {
-      return response.badRequest({ error: { code: error.code, message: error.message } })
-    }
+  } catch {
     return response.serviceUnavailable({ error: { code: 'workspace_unavailable', message: 'The workspace is unavailable.' } })
   }
 })
