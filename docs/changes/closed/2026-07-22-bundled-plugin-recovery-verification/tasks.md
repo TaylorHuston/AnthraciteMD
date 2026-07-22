@@ -187,7 +187,7 @@ Required for UI-bearing changes. If not applicable, record why.
 - ADR status: no ADR change required.
 - Release communication current: not required; no user-facing change.
 - `sdd-review` verdict: ready.
-- Review record: `docs/changes/2026-07-22-bundled-plugin-recovery-verification/review.md`.
+- Review record: `docs/changes/closed/2026-07-22-bundled-plugin-recovery-verification/review.md`.
 - `review.md` findings resolved: yes; required invalid-envelope recovery finding resolved in `96aed1d`.
 - Planning updates resolved: yes.
 - Implementation risk and confirmation rows resolved: yes; R4-S2 platform limit remains explicit and outside this Change.

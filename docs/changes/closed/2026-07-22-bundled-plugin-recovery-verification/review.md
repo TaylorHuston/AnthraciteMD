@@ -9,7 +9,7 @@ ready
 | Gate | Result | Notes |
 |---|---|---|
 | Change artifacts | pass | Proposal, design, tasks, and GMD-003 map match the recovered-state scope. |
-| Change status | pass | `in_review` is accurate; no closeout or merge has been authorized. |
+| Change status | pass | The reviewed candidate was `in_review`; the owner subsequently authorized local integration and closeout, recorded in `tasks.md`. |
 | Epic truth | pass | GMD-003 R4 evidence now covers every current production bundle ID. |
 | Requirements and Scenarios | pass | R4-S3 includes persisted enablement, restart recovery, malformed JSON, and invalid-envelope isolation. |
 | Story reference traceability | pass | Diff-scoped orphan audit found no missing implementation or verification references. |
@@ -26,7 +26,7 @@ ready
 | Documentation | pass | GMD-003 evidence and the Change ledger record the exact recovery behavior. |
 | Idea repository / current-state truth | pass | Accepted scope remains bundled recovery verification; no product scope changed. |
 | Release communication | not applicable | No user-facing or operational release note is required. |
-| Branch and merge readiness | pass | Clean merge-tree check against `develop`; merge remains user-authorized work. |
+| Branch and merge readiness | pass | Clean merge-tree check against `develop`; the owner subsequently authorized and completed the local merge. |
 | PRD alignment | pass | Durable workspace-local plugin state and isolated failures remain consistent with the accepted product direction. |
 
 ## Findings
@@ -65,6 +65,7 @@ Not applicable: this Change modifies server/plugin lifecycle behavior only.
 - Conflict check: `git merge-tree --write-tree develop HEAD` passed after remediation.
 - Dirty state: clean after remediation commit.
 - Reverse-traceability command/result: `sdd_orphan_audit.py ... --changed-from develop --epic GMD-003` found 15 candidates, 2 source files, 1 test file, and no missing references.
+- Post-review integration: owner-authorized local merge completed as `9c05ec5`, followed by Change closeout.
 
 ## Consolidated Remediation
 
@@ -81,8 +82,8 @@ Not applicable: this Change modifies server/plugin lifecycle behavior only.
 - Target branch: `develop`.
 - Conflict check: pass before remediation; no integration conflict indicators.
 - Commit state: reviewed implementation and remediation are committed.
-- PR status: not created.
-- Merge status: not authorized.
+- PR status: not created; project policy used a local integration merge for this Change.
+- Merge status: subsequently completed locally as `9c05ec5` under owner authorization.
 
 ## Review Log
 

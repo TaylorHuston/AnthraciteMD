@@ -64,7 +64,7 @@ GraphiteMD is intended to be a document-native AI workbench, but the current app
 ## Change Folder
 
 - Planned location: promoted; private draft removed
-- Active location: `docs/changes/2026-07-19-llm-assistant-integration/`
+- Active location: None; implementation, review, integration, and closeout are complete.
 - Closed location: `docs/changes/closed/2026-07-19-llm-assistant-integration/`
 
 ## Impact
@@ -73,7 +73,7 @@ GraphiteMD is intended to be a document-native AI workbench, but the current app
 - Code: Adds runtime-neutral Assistant contracts, a service-owned Pi/Codex and workspace-enforcement boundary, a brokered bundled Assistant policy/presentation contribution, conversation persistence, authenticated HTTP routes, responsive web UI, and a safe `.graphite/` to `.graphitemd/` workspace-state migration with a machine-local state default.
 - Tests: Adds deterministic provider/OAuth doubles, package/service/contract/component coverage, production-browser E2E, a live Codex playtest, and direct rendered UI inspection.
 - Docs: Updates the new Epic, README runtime/security/backup and migration guidance, plugin and Assistant boundaries, and user-visible changelog.
-- ADRs: Revises the Proposed Pi-backed Assistant ADR to record the workspace-vault/machine-vault split and migration, and links the existing agent-authority ADR to read-only Q&A in `GMD-004/S2`.
+- ADRs: Revises the now-Accepted Pi-backed Assistant ADR to record the workspace-vault/machine-vault split and migration, and links the existing agent-authority ADR to read-only Q&A in `GMD-004/S2`.
 
 ## Release Communication Impact
 

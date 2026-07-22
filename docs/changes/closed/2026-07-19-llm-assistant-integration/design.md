@@ -337,7 +337,7 @@ It produces the smallest slice that proves real product value and the critical t
 
 - Required: yes
 - ADR path: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md`
-- Status: Proposed until implementation and review prove the boundary.
+- Status: Accepted after implementation, deterministic verification, live-provider confirmation, and independent review proved the boundary.
 - Decision summary: run Pi behind service-owned policy-free model/auth capabilities, keep workspace-canonical state in `.graphitemd/`, keep credentials in the default machine-local `~/.graphitemd/` vault (or a non-workspace override), and expose only brokered read-only tools to the bundled Assistant policy/presentation contribution.
 - Reconsider when: Pi's programmatic boundary becomes unstable, local models change disclosure assumptions, multiple providers require a registry, or community plugin isolation changes runtime placement.
 
@@ -367,7 +367,7 @@ It produces the smallest slice that proves real product value and the critical t
 - Broad supporting gates: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:storybook`, `pnpm build-storybook`, `pnpm test:e2e`, and `pnpm audit --audit-level high`.
 - Deterministic E2E: use an injected fake OAuth/runtime boundary and a disposable workspace with uniquely identifiable notes; prove connect, ask, brokered read, visible sources, inspectable conversation file, disconnect, mobile drawer, and non-AI continuity through the production server/browser path.
 - Live-provider or external-service playtests: owner completes Codex OAuth and asks a question whose answer exists only in a disposable uniquely identifiable note; inspect answer, service-derived source, conversation file, and absence of credentials/content leakage in logs. Record this separately from deterministic proof.
-- Manual UI confirmation: pending user after rendered inspection; desktop Context/Settings and narrow drawer flows need owner acceptance.
+- Manual UI confirmation: user confirmed on 2026-07-22 after deterministic desktop/narrow inspection and a live Codex question with service-derived source evidence.
 - Debug/log inspection: inspect sanitized provider/runtime failures, source provenance, credential/state permissions, browser console, and network responses. Logs must not contain note bodies, prompts, tokens, callback codes, or host paths.
 
 ## Decisions

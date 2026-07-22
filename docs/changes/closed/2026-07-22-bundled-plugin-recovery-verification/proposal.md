@@ -37,7 +37,7 @@ Add deterministic persisted enablement, restart, and interrupted-state recovery 
 ## Change Folder
 
 - Planned location: promoted; private draft removed
-- Active location: `docs/changes/2026-07-22-bundled-plugin-recovery-verification/`
+- Active location: None; implementation, review, integration, and closeout are complete.
 - Closed location: `docs/changes/closed/2026-07-22-bundled-plugin-recovery-verification/`
 
 ## Impact

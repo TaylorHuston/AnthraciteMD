@@ -43,12 +43,12 @@ No blocking or required findings remain.
 ## Review Bundle
 
 - Source branch/ref: `change/llm-assistant-integration`
-- Reviewed source commit: `7980e9e` plus the uncommitted deterministic-evidence remediation
+- Reviewed source commit: `000824384a1dd3a3f81f384b88b3999937146089`
 - Target branch/ref: `develop`
 - Merge base: `4b2873ff074518e6cb5defd1434d3c0a848886f1`
-- Conflict check: `git merge-tree --write-tree develop HEAD` passed before remediation; the uncommitted remediation scope does not overlap user-owned `apps/web/src/styles.css`.
-- Dirty state: user-owned `apps/web/src/styles.css` remains unstaged and untouched.
-- Branch policy: no push, PR, merge, or closeout was performed.
+- Conflict check: `git merge-tree --write-tree develop HEAD` passed for the reviewed branch after remediation.
+- Dirty state: clean at the reviewed candidate.
+- Branch policy: the review itself performed no push, PR, merge, or closeout; the owner subsequently authorized local merge and closeout as recorded in `tasks.md`.
 
 ## Consolidated Remediation
 
