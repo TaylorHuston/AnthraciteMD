@@ -278,7 +278,7 @@ This ledger is chronological. Earlier pending results record the state at that d
 - Superseded earlier Epic truth reconciled: no superseded behavior; `GMD-003` boundary retained.
 - ADR status: `docs/adrs/2026-07-19-pi-backed-assistant-runtime.md` Accepted.
 - Release communication current: README and user-facing changelog now describe the shipped bounded Assistant surface.
-- `sdd-review` verdict: ready at `7a401feedccbd427ce7e19bc59e118dc71686687`; the later nine-finding release PR remediation requires a fresh review before its new commit is pushed.
+- `sdd-review` verdict: ready; the release PR remediation received a fresh full review at `e7dd349d3b77f64fe5ef643c556ab260bdaf1f34`.
 - Review record: `review.md` records complete deterministic, live-provider, owner-confirmation, and release PR remediation evidence.
 - `review.md` findings resolved: request-scoped model execution, exact policy/descriptor enforcement, follow-up persistence, busy announcement, retry affordance, external route/Pi coverage, narrow Context, and live provider evidence.
 - Planning updates resolved: 2026-07-20 split workspace-vault/machine-vault topology implemented and reconciled.
