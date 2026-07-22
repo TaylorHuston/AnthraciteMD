@@ -5,10 +5,10 @@ status: in_review
 
 ## Resume Here
 
-- Last completed action: completed the implementation self-check and committed the per-bundle runtime recovery proof as `ae3891f`.
+- Last completed action: transitioned to `in_review` and committed the reviewed implementation and reconciliation through `4dd8e56`.
 - Next action: independent `/sdd-review` of the immutable candidate.
 - Active branch/ref: `change/bundled-plugin-recovery-verification`.
-- Expected dirty files: runtime, SDK, focused test, and this Change's GMD-003 reconciliation.
+- Expected dirty files: none.
 - Known blockers: none identified yet
 
 ## Task Checklist
@@ -176,9 +176,9 @@ Required for UI-bearing changes. If not applicable, record why.
 ## Review Handoff Candidate
 
 - Integration target / merge base: `develop` / `c0e80a653657204fb1057deee314dda5b3bc8da1`.
-- Candidate source commit: `ae3891f` (with documentation baseline `ad3e1b9`).
+- Candidate source commit: `4dd8e56` (implementation `ae3891f`, documentation baseline `ad3e1b9`).
 - Source differs from target when implementation changed: yes.
-- Intended implementation fully committed: yes; ledger reconciliation pending this follow-up commit.
+- Intended implementation fully committed: yes.
 - Unrelated dirty state preserved: yes.
 - Commit-sensitive generated-contract / diff / integration checks: `git diff --check develop...ae3891f` passing; no generated contract applies.
 - Required risk, fan-out, environment, or verification rows still pending or blocked: no implementation blockers; R4-S2 process-kill/pathname-race limits remain deferred outside this Change.
@@ -206,7 +206,7 @@ Required for UI-bearing changes. If not applicable, record why.
 - Evidence-claim integrity checked: yes; fresh-context code/evidence review passed.
 - Decision fan-out reconciled: yes.
 - Verification environment obligations resolved: yes; disposable workspace, no provider/browser required.
-- Immutable review handoff candidate: `ae3891f` implementation commit plus this ledger reconciliation commit.
+- Immutable review handoff candidate: `4dd8e56` (implementation `ae3891f`, documentation baseline `ad3e1b9`).
 - Manual UI confirmation status: not applicable; no UI change.
 - Rendered UI verification status: not applicable; no UI change.
 - PR / merge state: not created; no user authorization to push or merge.
