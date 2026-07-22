@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { chmod, lstat, mkdir, stat } from 'node:fs/promises'
 import { isAbsolute, join, resolve } from 'node:path'
 
@@ -67,10 +68,8 @@ async function ensurePrivateDirectory(path: string): Promise<void> {
     await mkdir(path, { recursive: true, mode: 0o700 })
   }
   await chmod(path, 0o700)
-  if ((await stat(path)).mode & 0o777) {
-    const mode = (await stat(path)).mode & 0o777
-    if (mode !== 0o700) throw new Error('Assistant state directory permissions are unsafe.')
-  }
+  const mode = (await stat(path)).mode & 0o777
+  if (mode !== 0o700) throw new Error('Assistant state directory permissions are unsafe.')
 }
 
 async function ensurePrivateCredential(path: string): Promise<void> {
@@ -254,7 +253,7 @@ export class PiModelSessionRuntime {
     }
     const { session } = await this.boundary.createRestrictedSession({
       workspaceCwd: this.workspaceCwd,
-      sessionId: `run_${Math.random().toString(36).slice(2)}`,
+      sessionId: `run_${randomUUID().replaceAll('-', '')}`,
       systemPrompt: input.policy.prompt,
       customTools: tools,
       enabledTools: input.policy.tools,

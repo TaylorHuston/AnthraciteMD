@@ -71,7 +71,10 @@ function testAssistantRuntime(): AssistantRunRuntime | undefined {
 }
 
 function piBoundary(): Promise<PiRuntimeBoundary> {
-  assistantBoundary ??= PiRuntimeBoundary.create(resolveSecurityStateDirectory())
+  assistantBoundary ??= PiRuntimeBoundary.create(resolveSecurityStateDirectory()).catch((error) => {
+    assistantBoundary = undefined
+    throw error
+  })
   return assistantBoundary
 }
 
