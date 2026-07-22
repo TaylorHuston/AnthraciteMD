@@ -81,6 +81,10 @@ function piBoundary(): Promise<PiRuntimeBoundary> {
 function oauthManager(): Promise<AssistantOAuthFlowManager> {
   assistantOAuth ??= piBoundary()
     .then((runtime) => new AssistantOAuthFlowManager(runtime))
+    .catch((error) => {
+      assistantOAuth = undefined
+      throw error
+    })
   return assistantOAuth
 }
 
