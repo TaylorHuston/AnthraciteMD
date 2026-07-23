@@ -19,7 +19,7 @@ const workspace = {
 
 const note = {
   resourceId: 'res_welcome', displayPath: 'Welcome.md',
-  source: '---\nstatus: active\n---\n# Welcome\n\nGraphiteMD keeps Markdown authoritative.\n',
+  source: '---\nstatus: active\n---\n# Welcome\n\nAnthraciteMD keeps Markdown authoritative.\n',
   revision: 'rev_storybook', yamlProperties: [{ name: 'status', value: 'active' }], yamlParseError: null,
 }
 
@@ -62,7 +62,7 @@ function handlers(options: {
 }
 
 const meta = {
-  title: 'Application/GraphiteMD Workbench', component: App,
+  title: 'Application/AnthraciteMD Workbench', component: App,
   parameters: { controls: { disable: true } },
 } satisfies Meta<typeof App>
 export default meta
@@ -74,13 +74,52 @@ export const Loading: Story = {
 }
 
 export const AuthenticationRequired: Story = {
-  parameters: { msw: { handlers: [http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 }))] } },
-  play: async ({ canvasElement }) => expect(await within(canvasElement).findByRole('heading', { name: 'Sign in to GraphiteMD' })).toBeVisible(),
+  parameters: { msw: { handlers: [http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })), http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'login_required' }))] } },
+  play: async ({ canvasElement }) => expect(await within(canvasElement).findByRole('heading', { name: 'Sign in to AnthraciteMD' })).toBeVisible(),
+}
+
+export const FirstOwnerSetup: Story = {
+  parameters: { msw: { handlers: [
+    http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })),
+    http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'setup_required' })),
+  ] } },
+  play: async ({ canvasElement }) => expect(await within(canvasElement).findByRole('heading', { name: 'Set up AnthraciteMD' })).toBeVisible(),
+}
+
+export const FirstOwnerSetupPending: Story = {
+  parameters: { msw: { handlers: [
+    http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })),
+    http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'setup_required' })),
+    http.post('/api/v1/auth/setup', async () => { await delay('infinite') }),
+  ] } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.type(await canvas.findByLabelText('Create owner password'), 'correct horse battery staple')
+    await userEvent.type(canvas.getByLabelText('Confirm owner password'), 'correct horse battery staple')
+    await userEvent.click(canvas.getByRole('button', { name: 'Create owner' }))
+    await expect(canvas.getByRole('button', { name: 'Creating owner…' })).toBeDisabled()
+  },
+}
+
+export const FirstOwnerSetupServerError: Story = {
+  parameters: { msw: { handlers: [
+    http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })),
+    http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'setup_required' })),
+    http.post('/api/v1/auth/setup', () => HttpResponse.json({ error: { code: 'invalid_request' } }, { status: 400 })),
+  ] } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.type(await canvas.findByLabelText('Create owner password'), 'short')
+    await userEvent.type(canvas.getByLabelText('Confirm owner password'), 'short')
+    await userEvent.click(canvas.getByRole('button', { name: 'Create owner' }))
+    await expect(await canvas.findByRole('alert')).toHaveTextContent('Choose a password')
+  },
 }
 
 export const InvalidCredentials: Story = {
   parameters: { msw: { handlers: [
     http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })),
+    http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'login_required' })),
     http.post('/api/v1/auth/login', () => HttpResponse.json({ error: { code: 'invalid_credentials' } }, { status: 401 })),
   ] } },
   play: async ({ canvasElement }) => {
@@ -94,6 +133,7 @@ export const InvalidCredentials: Story = {
 export const AuthenticationPending: Story = {
   parameters: { msw: { handlers: [
     http.get('/api/v1/auth/current', () => HttpResponse.json({}, { status: 401 })),
+    http.get('/api/v1/auth/bootstrap', () => HttpResponse.json({ state: 'login_required' })),
     http.post('/api/v1/auth/login', async () => { await delay('infinite') }),
   ] } },
   play: async ({ canvasElement }) => {
@@ -280,7 +320,7 @@ export const SearchNoResults: Story = {
 export const SearchLongPath: Story = {
   parameters: { msw: { handlers: handlers({ searchResults: [{
       resourceId: 'res_plan', title: 'Plan',
-      displayPath: 'Areas/Products/GraphiteMD/Foundation/Architecture/Decisions/Very-Long-Planning-Document.md',
+      displayPath: 'Areas/Products/AnthraciteMD/Foundation/Architecture/Decisions/Very-Long-Planning-Document.md',
       snippet: 'A long path remains readable without widening the navigation pane.',
     }] }) } },
   play: async ({ canvasElement }) => {

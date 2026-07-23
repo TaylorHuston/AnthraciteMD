@@ -10,6 +10,7 @@ import { OwnerSetupService } from '../../app/security/owner_setup_service.js'
 
 const port = 34_000 + Math.floor(Math.random() * 1_000)
 const origin = `http://127.0.0.1:${port}`
+const allowedOrigin = 'http://127.0.0.1:5173'
 let stateDirectory: string
 let workspaceRoot: string
 let retainedWorkspaceRoot: string | undefined
@@ -26,7 +27,7 @@ async function waitForServer(): Promise<void> {
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  throw new Error(`GraphiteMD test server did not start: ${lastResponse}\n${serverError}`)
+  throw new Error(`AnthraciteMD test server did not start: ${lastResponse}\n${serverError}`)
 }
 
 function responseCookies(response: Response): string {
@@ -34,7 +35,7 @@ function responseCookies(response: Response): string {
 }
 
 function sessionCookie(response: Response): string {
-  const cookie = response.headers.getSetCookie().find((value) => value.startsWith('graphitemd_session='))
+  const cookie = response.headers.getSetCookie().find((value) => value.startsWith('anthracitemd_session='))
   if (!cookie) throw new Error('Expected a session cookie')
   return cookie.split(';', 1)[0]!
 }
@@ -67,8 +68,34 @@ async function loginOwner(): Promise<{ cookie: string; token: string }> {
   return { cookie, token: anonymous.token }
 }
 
+async function clearOwner(): Promise<void> {
+  const database = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+  database.exec('DELETE FROM sessions; DELETE FROM owners')
+  database.close()
+}
+
+async function restoreOwner(): Promise<void> {
+  const service = new OwnerSetupService(stateDirectory)
+  if (!(await service.hasOwner())) await service.createOwner('correct horse battery staple')
+}
+
+async function setupOwner(
+  anonymous: { cookie: string; token: string },
+  password: string,
+  originHeader = allowedOrigin,
+): Promise<Response> {
+  return fetch(`${origin}/api/v1/auth/setup`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json', cookie: anonymous.cookie,
+      'x-xsrf-token': anonymous.token, origin: originHeader,
+    },
+    body: JSON.stringify({ password }),
+  })
+}
+
 async function waitForInProgressAssistantTurn(): Promise<void> {
-  const directory = join(workspaceRoot, '.graphitemd', 'conversations')
+  const directory = join(workspaceRoot, '.anthracitemd', 'conversations')
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
       for (const name of await readdir(directory)) {
@@ -82,8 +109,8 @@ async function waitForInProgressAssistantTurn(): Promise<void> {
 }
 
 beforeAll(async () => {
-  stateDirectory = await mkdtemp(join(tmpdir(), 'graphitemd-http-security-'))
-  workspaceRoot = await mkdtemp(join(tmpdir(), 'graphitemd-http-workspace-'))
+  stateDirectory = await mkdtemp(join(tmpdir(), 'anthracitemd-http-security-'))
+  workspaceRoot = await mkdtemp(join(tmpdir(), 'anthracitemd-http-workspace-'))
   await mkdir(join(workspaceRoot, 'Notes'))
   await writeFile(join(workspaceRoot, 'Notes', 'Welcome.md'), '# Welcome\n\nUnique grounded fact: cobalt otter.\n', 'utf8')
   await new OwnerSetupService(stateDirectory).createOwner('correct horse battery staple')
@@ -95,11 +122,11 @@ beforeAll(async () => {
       NODE_ENV: 'test',
       HOST: '127.0.0.1',
       PORT: String(port),
-      APP_KEY: 'graphitemd-http-test-key-that-is-long-enough',
-      GRAPHITEMD_STATE_DIR: stateDirectory,
-      GRAPHITEMD_WORKSPACE_ROOT: workspaceRoot,
-      GRAPHITEMD_ALLOWED_ORIGINS: 'http://127.0.0.1:5173',
-      GRAPHITEMD_ASSISTANT_TEST_RUNTIME: 'grounded',
+      APP_KEY: 'anthracitemd-http-test-key-that-is-long-enough',
+      ANTHRACITEMD_STATE_DIR: stateDirectory,
+      ANTHRACITEMD_WORKSPACE_ROOT: workspaceRoot,
+      ANTHRACITEMD_ALLOWED_ORIGINS: 'http://127.0.0.1:5173',
+      ANTHRACITEMD_ASSISTANT_TEST_RUNTIME: 'grounded',
     },
     stdio: ['ignore', 'ignore', 'pipe'],
   })
@@ -118,8 +145,140 @@ afterAll(async () => {
   ])
 })
 
-describe('GMD-001/S1 R2 browser session authentication', () => {
-  it('GMD-004/S1 R2-S3 rejects unauthenticated Codex reads and mutations without exposing flow state', async () => {
+describe('AMD-001/S3 R1 browser setup discovery', () => {
+  it('R1-S1 and R1-S2 disclose only the required setup state', async () => {
+    const database = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+    database.exec('DELETE FROM sessions; DELETE FROM owners')
+    database.close()
+
+    try {
+      const fresh = await fetch(`${origin}/api/v1/auth/bootstrap`)
+      expect(fresh.status).toBe(200)
+      expect(await fresh.json()).toEqual({ state: 'setup_required' })
+
+      await new OwnerSetupService(stateDirectory).createOwner('correct horse battery staple')
+
+      const claimed = await fetch(`${origin}/api/v1/auth/bootstrap`)
+      expect(claimed.status).toBe(200)
+      expect(await claimed.json()).toEqual({ state: 'login_required' })
+    } finally {
+      const restore = new OwnerSetupService(stateDirectory)
+      if (!(await restore.hasOwner())) await restore.createOwner('correct horse battery staple')
+    }
+  })
+})
+
+describe('AMD-001/S3 R2 and R3 browser owner setup', () => {
+  it('R2-S1 creates the owner once and establishes the normal protected session', async () => {
+    await clearOwner()
+    try {
+      const anonymous = await csrfSession()
+      const setup = await setupOwner(anonymous, 'correct horse battery staple')
+      expect(setup.status).toBe(200)
+      expect(await setup.json()).toEqual({ owner: { id: 'owner' } })
+      const cookie = sessionCookie(setup)
+      expect((await fetch(`${origin}/api/v1/auth/current`, { headers: { cookie } })).status).toBe(200)
+      expect((await fetch(`${origin}/api/v1/workspace`, { headers: { cookie } })).status).toBe(200)
+    } finally {
+      await restoreOwner()
+    }
+  })
+
+  it('R2-S2 rejects an invalid password without claiming the host', async () => {
+    await clearOwner()
+    try {
+      const response = await setupOwner(await csrfSession(), 'short')
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ error: { code: 'invalid_request', message: 'Invalid request.' } })
+      await expect(new OwnerSetupService(stateDirectory).hasOwner()).resolves.toBe(false)
+    } finally {
+      await restoreOwner()
+    }
+  })
+
+  it('R2-S3 lets one concurrent setup claim win without giving the loser a session', async () => {
+    await clearOwner()
+    try {
+      const [first, second] = await Promise.all([
+        setupOwner(await csrfSession(), 'first correct horse battery staple'),
+        setupOwner(await csrfSession(), 'second correct horse battery staple'),
+      ])
+      expect([first.status, second.status].sort()).toEqual([200, 409])
+      const service = new OwnerSetupService(stateDirectory)
+      const validPasswords = await Promise.all([
+        service.verifyPassword('first correct horse battery staple'),
+        service.verifyPassword('second correct horse battery staple'),
+      ])
+      expect(validPasswords.filter(Boolean)).toHaveLength(1)
+      const loser = first.status === 409 ? first : second
+      expect((await fetch(`${origin}/api/v1/auth/current`, { headers: { cookie: sessionCookie(loser) } })).status).toBe(401)
+    } finally {
+      await restoreOwner()
+    }
+  })
+
+  it('R2-S4 keeps a committed owner usable when session issuance fails', async () => {
+    await clearOwner()
+    const anonymous = await csrfSession()
+    const database = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+    database.exec("CREATE TRIGGER reject_first_owner_session BEFORE INSERT ON sessions BEGIN SELECT RAISE(ABORT, 'session failure'); END")
+    database.close()
+    try {
+      const setup = await setupOwner(anonymous, 'correct horse battery staple')
+      expect(setup.status).toBeGreaterThanOrEqual(500)
+      const persisted = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+      expect((persisted.prepare('SELECT count(*) AS count FROM owners').get() as { count: number }).count).toBe(1)
+      persisted.close()
+    } finally {
+      const cleanup = new DatabaseSync(join(stateDirectory, 'security.sqlite'))
+      cleanup.exec('DROP TRIGGER IF EXISTS reject_first_owner_session')
+      cleanup.close()
+    }
+    try {
+      expect(await new OwnerSetupService(stateDirectory).verifyPassword('correct horse battery staple')).toBe(true)
+      await expect(loginOwner()).resolves.toBeDefined()
+    } finally {
+      await restoreOwner()
+    }
+  })
+
+  it('R3-S1 rejects missing XSRF proof and an untrusted Origin without mutation', async () => {
+    await clearOwner()
+    try {
+      const anonymous = await csrfSession()
+      const missingXsrf = await fetch(`${origin}/api/v1/auth/setup`, {
+        method: 'POST', headers: { 'content-type': 'application/json', cookie: anonymous.cookie, origin: allowedOrigin },
+        body: JSON.stringify({ password: 'correct horse battery staple' }),
+      })
+      expect(missingXsrf.status).toBe(403)
+      const untrusted = await setupOwner(anonymous, 'correct horse battery staple', 'https://untrusted.example')
+      expect(untrusted.status).toBe(403)
+      await expect(new OwnerSetupService(stateDirectory).hasOwner()).resolves.toBe(false)
+    } finally {
+      await restoreOwner()
+    }
+  })
+
+  it('R3-S2 bounds repeated claimed-host setup attempts without replacing the credential', async () => {
+    const service = new OwnerSetupService(stateDirectory)
+    await clearOwner()
+    await service.createOwner('correct horse battery staple')
+    try {
+      const anonymous = await csrfSession()
+      const attempts = await Promise.all(Array.from({ length: 6 }, () => setupOwner(anonymous, 'another correct horse battery staple')))
+      expect(attempts.map((response) => response.status)).toContain(429)
+      expect(attempts.filter((response) => response.status === 409).length).toBeGreaterThan(0)
+      expect(attempts.every((response) => response.status === 409 || response.status === 429)).toBe(true)
+      expect(await service.verifyPassword('correct horse battery staple')).toBe(true)
+      expect(await service.verifyPassword('another correct horse battery staple')).toBe(false)
+    } finally {
+      await restoreOwner()
+    }
+  })
+})
+
+describe('AMD-001/S1 R2 browser session authentication', () => {
+  it('AMD-004/S1 R2-S3 rejects unauthenticated Codex reads and mutations without exposing flow state', async () => {
     const anonymous = await csrfSession()
     const requests = await Promise.all([
       fetch(`${origin}/api/v1/assistant/provider`),
@@ -149,7 +308,7 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
     ])
   })
 
-  it('GMD-004/S1 R1-S1 returns only the normalized provider projection to the authenticated owner', async () => {
+  it('AMD-004/S1 R1-S1 returns only the normalized provider projection to the authenticated owner', async () => {
     const owner = await loginOwner()
     const provider = await fetch(`${origin}/api/v1/assistant/provider`, { headers: { cookie: owner.cookie } })
     expect(provider.status).toBe(200)
@@ -159,7 +318,7 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
     })
   })
 
-  it('GMD-004/S2 R1-S1 dispatches an authenticated, XSRF-protected grounded question and persists the canonical turn', async () => {
+  it('AMD-004/S2 R1-S1 dispatches an authenticated, XSRF-protected grounded question and persists the canonical turn', async () => {
     const owner = await loginOwner()
     const missingProof = await fetch(`${origin}/api/v1/assistant/questions`, {
       method: 'POST', headers: { 'content-type': 'application/json', cookie: owner.cookie },
@@ -182,12 +341,12 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
     })
     expect(JSON.stringify(turn)).not.toContain(workspaceRoot)
 
-    const record = JSON.parse(await readFile(join(workspaceRoot, '.graphitemd', 'conversations', `${turn.conversationId}.json`), 'utf8'))
+    const record = JSON.parse(await readFile(join(workspaceRoot, '.anthracitemd', 'conversations', `${turn.conversationId}.json`), 'utf8'))
     expect(record.turns).toHaveLength(1)
     expect(record.turns[0]).toMatchObject({ status: 'completed', answer: expect.stringContaining('cobalt otter') })
   })
 
-  it('GMD-004/S2 R1-S3 returns service unavailable for a concurrent question instead of invalid input', async () => {
+  it('AMD-004/S2 R1-S3 returns service unavailable for a concurrent question instead of invalid input', async () => {
     const owner = await loginOwner()
     const headers = { 'content-type': 'application/json', cookie: owner.cookie, 'x-xsrf-token': owner.token }
     const first = fetch(`${origin}/api/v1/assistant/questions`, {
@@ -230,6 +389,15 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
       expect.objectContaining({ kind: 'note', displayPath: 'Notes/Welcome.md', resourceId: expect.stringMatching(/^res_/) }),
     ])
     expect(JSON.stringify(projection)).not.toContain(workspaceRoot)
+  })
+
+  it('AMD-001/S1 R4-S3 rejects the former browser cookie identity', async () => {
+    const authenticated = await loginOwner()
+    const currentCookie = /(?:^|; )(anthracitemd_session=[^;]+)/.exec(authenticated.cookie)?.[1]
+    expect(currentCookie).toBeDefined()
+    const legacyCookie = currentCookie!.replace('anthracitemd_session=', 'graphitemd_session=')
+
+    expect((await fetch(`${origin}/api/v1/auth/current`, { headers: { cookie: legacyCookie } })).status).toBe(401)
   })
 
   it('R2-S2 returns the same generic response and no authenticated session for unknown and incorrect credentials', async () => {
@@ -322,7 +490,7 @@ describe('GMD-001/S1 R2 browser session authentication', () => {
   })
 })
 
-describe('GMD-002/S1 R3 exact note reading', () => {
+describe('AMD-002/S1 R3 exact note reading', () => {
   it('R1-S3 refreshes host-created and deleted Markdown on browser reconnect', async () => {
     const authenticated = await loginOwner()
     const external = join(workspaceRoot, 'Notes', 'External.md')
@@ -390,7 +558,7 @@ describe('GMD-002/S1 R3 exact note reading', () => {
   })
 })
 
-describe('GMD-002/S2 authenticated confined note mutations', () => {
+describe('AMD-002/S2 authenticated confined note mutations', () => {
   it('R2-S1 and R4-S2 saves an exact revision-bound owner draft over the authenticated route', async () => {
     await writeFile(join(workspaceRoot, 'Notes', 'Welcome.md'), '# Before\r\nline\n', 'utf8')
     const authenticated = await loginOwner()
@@ -519,7 +687,7 @@ describe('GMD-002/S2 authenticated confined note mutations', () => {
   })
 })
 
-describe('GMD-002/S3 authenticated local search', () => {
+describe('AMD-002/S3 authenticated local search', () => {
   it('R1-S1 and R3-S1 protects host-local search and returns opaque results', async () => {
     await writeFile(join(workspaceRoot, 'Notes', 'Searchable.md'), '---\nowner: Taylor\n---\n# Searchable\nlocalneedle\n', 'utf8')
     expect((await fetch(`${origin}/api/v1/search?q=localneedle`)).status).toBe(401)
@@ -542,7 +710,7 @@ describe('GMD-002/S3 authenticated local search', () => {
 
   it('R1-S3 reports a recoverable local-index failure without misclassifying workspace authority', async () => {
     const authenticated = await loginOwner()
-    const databasePath = join(workspaceRoot, '.graphitemd', 'cache', 'search.sqlite')
+    const databasePath = join(workspaceRoot, '.anthracitemd', 'cache', 'search.sqlite')
     await rm(databasePath, { force: true })
     await mkdir(databasePath)
     try {
@@ -559,7 +727,7 @@ describe('GMD-002/S3 authenticated local search', () => {
   })
 })
 
-describe('GMD-003/S1 production plugin host', () => {
+describe('AMD-003/S1 production plugin host', () => {
   it('lists and controls the bundled plugin through authenticated endpoints and persists the setting', async () => {
     expect((await fetch(`${origin}/api/v1/plugins`)).status).toBe(401)
     const authenticated = await loginOwner()
@@ -590,12 +758,12 @@ describe('GMD-003/S1 production plugin host', () => {
     expect(await disabled.json()).toEqual({
       plugin: expect.objectContaining({ id: 'system-status', status: 'disabled', contributions: {} }),
     })
-    expect(JSON.parse(await readFile(join(workspaceRoot, '.graphitemd', 'plugins.json'), 'utf8')))
+    expect(JSON.parse(await readFile(join(workspaceRoot, '.anthracitemd', 'plugins.json'), 'utf8')))
       .toEqual({ schemaVersion: 1, enabled: { 'system-status': false } })
   })
 })
 
-describe('GMD-001/S1 R3 browser request protection', () => {
+describe('AMD-001/S1 R3 browser request protection', () => {
   it('R3-S1 rejects a state-changing authenticated request without XSRF proof and accepts valid proof', async () => {
     const authenticated = await loginOwner()
     const missingProof = await fetch(`${origin}/api/v1/auth/logout`, {
@@ -635,7 +803,7 @@ describe('GMD-001/S1 R3 browser request protection', () => {
   })
 })
 
-describe('GMD-002/S1 R1 workspace identity authority', () => {
+describe('AMD-002/S1 R1 workspace identity authority', () => {
   it('returns unavailable without provisioning a replacement workspace root', async () => {
     const authenticated = await loginOwner()
     expect((await fetch(`${origin}/api/v1/workspace`, { headers: { cookie: authenticated.cookie } })).status).toBe(200)
@@ -647,6 +815,6 @@ describe('GMD-002/S1 R1 workspace identity authority', () => {
     const response = await fetch(`${origin}/api/v1/workspace`, { headers: { cookie: authenticated.cookie } })
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ available: false, reason: 'identity_changed' })
-    await expect(stat(join(workspaceRoot, '.graphitemd'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(stat(join(workspaceRoot, '.anthracitemd'))).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })

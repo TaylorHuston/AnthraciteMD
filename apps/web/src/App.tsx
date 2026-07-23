@@ -3,6 +3,7 @@ import type { FormEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from '
 import { FileText, Folder, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
 import {
   MarkdownNoteResponse as MarkdownNoteSchema,
+  AuthBootstrapResponse,
   OwnerResponse,
   PluginsResponse,
   RenameNoteResponse,
@@ -12,7 +13,7 @@ import {
   type MarkdownNoteResponse as Note,
   type PluginInventoryItem,
   type WorkspaceResponse as Workspace,
-} from '@graphitemd/contracts'
+} from '@anthracitemd/contracts'
 import { MarkdownEditor } from './MarkdownEditor.js'
 import { AppRail } from './AppRail.js'
 import { SettingsPanel } from './SettingsPanel.js'
@@ -26,6 +27,7 @@ type InventoryItem = NoteItem | FolderItem
 type AppState =
   | { kind: 'loading' }
   | { kind: 'login'; expired: boolean; error?: string }
+  | { kind: 'setup'; error?: string }
   | { kind: 'unavailable'; message: string }
   | { kind: 'ready'; workspace: Workspace }
 
@@ -180,17 +182,54 @@ function Login({ expired, initialError, onAuthenticated }: {
       })
       if (!result.ok) { setError('The password was not accepted.'); return }
       onAuthenticated()
-    } catch { setError('GraphiteMD could not reach the service.') }
+    } catch { setError('AnthraciteMD could not reach the service.') }
     finally { setPending(false) }
   }
   return <main className="centered-state"><form name="owner-login" className="login-panel" onSubmit={submit}>
-    <div className="brand-mark" aria-hidden="true">G</div><p className="eyebrow">GraphiteMD</p>
-    <h1>Sign in to GraphiteMD</h1>
+    <div className="brand-mark" aria-hidden="true">A</div><p className="eyebrow">AnthraciteMD</p>
+    <h1>Sign in to AnthraciteMD</h1>
     <p>{expired ? 'Your session has expired. Sign in again to continue.' : 'Enter the owner password for this host.'}</p>
     <label htmlFor="password">Password</label>
     <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
     {error && <p className="form-error" role="alert">{error}</p>}
     <button className="primary-button" type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
+  </form></main>
+}
+
+function FirstOwnerSetup({ initialError, onAuthenticated, onClaimed }: {
+  initialError?: string; onAuthenticated: () => void; onClaimed: () => void
+}) {
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [error, setError] = useState(initialError)
+  const [pending, setPending] = useState(false)
+  useEffect(() => { passwordRef.current?.focus() }, [])
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setError(undefined)
+    if (password !== confirmation) { setError('The passwords do not match.'); return }
+    setPending(true)
+    try {
+      const result = await requestJson('/api/v1/auth/setup', OwnerResponse, {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-xsrf-token': xsrfToken() },
+        body: JSON.stringify({ password }),
+      })
+      if (result.status === 409) { onClaimed(); return }
+      if (!result.ok) { setError(result.status === 400 ? 'Choose a password with at least 12 bytes.' : 'The owner password could not be created.'); return }
+      onAuthenticated()
+    } catch { setError('AnthraciteMD could not reach the service.') }
+    finally { setPending(false) }
+  }
+  return <main className="centered-state"><form name="first-owner-setup" className="login-panel" onSubmit={submit}>
+    <div className="brand-mark" aria-hidden="true">A</div><p className="eyebrow">AnthraciteMD</p>
+    <h1>Set up AnthraciteMD</h1><p>Create the owner password for this fresh host.</p>
+    <label htmlFor="first-owner-password">Create owner password</label>
+    <input ref={passwordRef} id="first-owner-password" name="password" type="password" autoComplete="new-password" aria-describedby="first-owner-guidance" required value={password} onChange={(event) => setPassword(event.target.value)} />
+    <p id="first-owner-guidance" className="field-guidance">Use at least 12 bytes. Keep this password with your host secrets.</p>
+    <label htmlFor="first-owner-confirmation">Confirm owner password</label>
+    <input id="first-owner-confirmation" name="confirmation" type="password" autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <button className="primary-button" type="submit" disabled={pending}>{pending ? 'Creating owner…' : 'Create owner'}</button>
   </form></main>
 }
 
@@ -493,7 +532,7 @@ function Workbench({ workspace, onSessionExpired, onSignedOut }: { workspace: Wo
       const url = new URL(window.location.href); url.search = ''; url.searchParams.set('resource', result.note.resourceId)
       window.history.replaceState(null, '', `${url.pathname}${url.search}`)
     } catch {
-      setRenameError('GraphiteMD received an invalid rename response. Your note was not replaced.')
+      setRenameError('AnthraciteMD received an invalid rename response. Your note was not replaced.')
     }
   }
   const [assistantRevision, setAssistantRevision] = useState(0)
@@ -522,7 +561,7 @@ function Workbench({ workspace, onSessionExpired, onSignedOut }: { workspace: Wo
     <aside className="navigation-panel" aria-label="Workspace navigation">{navigation}</aside>
     <article className="document-region">
       <header className="document-header"><button className="edge-toggle edge-toggle-left" type="button" aria-label={navigationOpen ? 'Collapse navigation' : 'Expand navigation'} onClick={() => setNavigationOpen((open) => !open)}>{navigationOpen ? <PanelLeftClose size={18} strokeWidth={1.75} aria-hidden="true" /> : <PanelLeftOpen size={18} strokeWidth={1.75} aria-hidden="true" />}</button><div><p className="document-path">{selected?.displayPath ?? 'Workspace'}</p><h1>{selected ? selected.displayPath.split('/').at(-1)?.replace(/\.md$/i, '') : 'Your workspace'}</h1></div><span className="status-chip" role="status" aria-live="polite">{save.phase === 'saving' || save.phase === 'scheduled' ? 'Saving…' : save.phase === 'conflict' ? 'Conflict' : save.phase === 'error' ? 'Save failed' : save.dirty ? 'Unsaved' : 'Saved'}</span><button className="edge-toggle edge-toggle-right" type="button" aria-label={contextOpen ? 'Collapse context' : 'Expand context'} onClick={() => setContextOpen((open) => !open)}>{contextOpen ? <PanelRightClose size={18} strokeWidth={1.75} aria-hidden="true" /> : <PanelRightOpen size={18} strokeWidth={1.75} aria-hidden="true" />}</button></header>
-      <div className="document-body">{workspaceState.inventory.length === 0 ? <EmptyState /> : noteStatus === 'loading' ? <div className="empty-state" aria-live="polite"><h2>Opening note…</h2></div> : selected ? <>{(save.phase === 'error' || save.phase === 'conflict') && <div className="save-recovery" role="alert"><p>{save.phase === 'conflict' ? 'This note changed on the host. Your local draft has not been overwritten.' : 'GraphiteMD could not save this draft.'}</p>{save.phase === 'error' ? <button type="button" onClick={() => void autosave.retry()}>Retry save</button> : <button type="button" onClick={() => { autosave.discard(); void openNote(selected.resourceId, 'restore') }}>Discard draft and reload</button>}</div>}<form name="rename-note" className="rename-note" onSubmit={(event) => void renameSelected(event)}><label htmlFor="note-filename">Filename</label><input id="note-filename" name="filename" autoComplete="off" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} disabled={save.pending} /><button type="submit" disabled={save.pending}>Rename</button>{renameError && <p role="alert">{renameError}</p>}</form><MarkdownEditor key={selected.resourceId} source={save.resourceId === selected.resourceId ? save.draft : selected.source} onChange={(source) => autosave.edit(source)} /></> : noteStatus === 'unavailable' ? <div className="empty-state" role="alert"><h2>Note unavailable</h2><p>The requested note could not be opened. Select another note from Files.</p></div> : <div className="empty-state"><div className="empty-mark" aria-hidden="true">◇</div><h2>Select a note</h2><p>Choose a Markdown file from Files to open it here.</p></div>}</div>
+      <div className="document-body">{workspaceState.inventory.length === 0 ? <EmptyState /> : noteStatus === 'loading' ? <div className="empty-state" aria-live="polite"><h2>Opening note…</h2></div> : selected ? <>{(save.phase === 'error' || save.phase === 'conflict') && <div className="save-recovery" role="alert"><p>{save.phase === 'conflict' ? 'This note changed on the host. Your local draft has not been overwritten.' : 'AnthraciteMD could not save this draft.'}</p>{save.phase === 'error' ? <button type="button" onClick={() => void autosave.retry()}>Retry save</button> : <button type="button" onClick={() => { autosave.discard(); void openNote(selected.resourceId, 'restore') }}>Discard draft and reload</button>}</div>}<form name="rename-note" className="rename-note" onSubmit={(event) => void renameSelected(event)}><label htmlFor="note-filename">Filename</label><input id="note-filename" name="filename" autoComplete="off" value={renameDraft} onChange={(event) => setRenameDraft(event.target.value)} disabled={save.pending} /><button type="submit" disabled={save.pending}>Rename</button>{renameError && <p role="alert">{renameError}</p>}</form><MarkdownEditor key={selected.resourceId} source={save.resourceId === selected.resourceId ? save.draft : selected.source} onChange={(source) => autosave.edit(source)} /></> : noteStatus === 'unavailable' ? <div className="empty-state" role="alert"><h2>Note unavailable</h2><p>The requested note could not be opened. Select another note from Files.</p></div> : <div className="empty-state"><div className="empty-mark" aria-hidden="true">◇</div><h2>Select a note</h2><p>Choose a Markdown file from Files to open it here.</p></div>}</div>
     </article>
     <aside className="context-panel" aria-label="Note context">{contextPanel()}</aside>
     {drawer && <Drawer name={drawer} onClose={closeDrawer}>{drawer === 'Files' ? filesPanel : drawer === 'Search' ? <SearchPanel onSessionExpired={onSessionExpired} onSelect={(resourceId) => { void openNote(resourceId, 'push', true); setDrawer(null) }} /> : drawer === 'Context' ? contextPanel() : <SettingsPanel onSessionExpired={onSessionExpired} onPluginsChanged={refreshPlugins} onAssistantChanged={() => setAssistantRevision((value) => value + 1)} onLogout={() => void logout()} />}</Drawer>}
@@ -535,7 +574,12 @@ export function App() {
     setState({ kind: 'loading' })
     try {
       const auth = await requestJson('/api/v1/auth/current', OwnerResponse)
-      if (auth.status === 401) { setState({ kind: 'login', expired: false }); return }
+      if (auth.status === 401) {
+        const bootstrap = await requestJson('/api/v1/auth/bootstrap', AuthBootstrapResponse)
+        if (!bootstrap.ok) { setState({ kind: 'unavailable', message: 'The authentication service is unavailable.' }); return }
+        setState(bootstrap.data.state === 'setup_required' ? { kind: 'setup' } : { kind: 'login', expired: false })
+        return
+      }
       if (!auth.ok) { setState({ kind: 'unavailable', message: 'The authentication service is unavailable.' }); return }
       const workspace = await requestJson('/api/v1/workspace', WorkspaceResponse)
       if (workspace.status === 401) { setState({ kind: 'login', expired: true }); return }
@@ -545,15 +589,16 @@ export function App() {
       setState({
         kind: 'unavailable',
         message: error instanceof InvalidApiResponseError && error.path === '/api/v1/workspace'
-          ? 'GraphiteMD received an invalid workspace response. Try again after checking the host service.'
-          : 'GraphiteMD could not reach the service.',
+          ? 'AnthraciteMD received an invalid workspace response. Try again after checking the host service.'
+          : 'AnthraciteMD could not reach the service.',
       })
     }
   }
   useEffect(() => { void load() }, [])
 
-  if (state.kind === 'loading') return <main className="centered-state" aria-busy="true"><p className="eyebrow">GraphiteMD</p><h1>Opening your workspace…</h1></main>
+  if (state.kind === 'loading') return <main className="centered-state" aria-busy="true"><p className="eyebrow">AnthraciteMD</p><h1>Opening your workspace…</h1></main>
   if (state.kind === 'login') return <Login expired={state.expired} {...(state.error ? { initialError: state.error } : {})} onAuthenticated={() => void load()} />
+  if (state.kind === 'setup') return <FirstOwnerSetup {...(state.error ? { initialError: state.error } : {})} onAuthenticated={() => void load()} onClaimed={() => void load()} />
   if (state.kind === 'unavailable') return <main className="centered-state"><div className="service-error"><p className="eyebrow">Service unavailable</p><h1>Workspace unavailable</h1><p>{state.message}</p><button className="primary-button" type="button" onClick={() => void load()}>Try again</button></div></main>
   return <Workbench workspace={state.workspace} onSessionExpired={() => setState({ kind: 'login', expired: true })} onSignedOut={() => setState({ kind: 'login', expired: false })} />
 }

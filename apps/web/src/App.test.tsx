@@ -37,7 +37,7 @@ if (!Range.prototype.getClientRects) {
   Range.prototype.getClientRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: function* () {} }) as DOMRectList
 }
 
-describe('GMD-002/S1 responsive browse shell', () => {
+describe('AMD-002/S1 responsive browse shell', () => {
   it('R2-S1 presents a deterministic accessible tree with selection and collapse', async () => {
     const fetchMock = vi.fn()
       .mockImplementationOnce(() => response(200, { owner: { id: 'owner' } }))
@@ -97,6 +97,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
 
     render(<App />)
     await screen.findByRole('tree', { name: 'Workspace files' })
+    expect(screen.getByLabelText('AnthraciteMD')).toHaveTextContent('A')
     await user.click(screen.getByTestId('mobile-files'))
 
     const drawer = screen.getByRole('dialog', { name: 'Files' })
@@ -107,16 +108,60 @@ describe('GMD-002/S1 responsive browse shell', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Files' })).not.toBeInTheDocument())
   })
 
-  it('distinguishes an initial unauthenticated browser from an expired session', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementationOnce(() => response(401, {
-      error: { code: 'unauthenticated', message: 'Authentication required.' },
-    })))
+  it('AMD-001/S3 R1-S1 renders first-owner setup after authoritative fresh-host discovery', async () => {
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => response(401, { error: { code: 'unauthenticated', message: 'Authentication required.' } }))
+      .mockImplementationOnce(() => response(200, { state: 'setup_required' }))
+    vi.stubGlobal('fetch', fetchMock)
 
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Sign in to GraphiteMD' })).toBeVisible()
-    expect(screen.getByText('Enter the owner password for this host.')).toBeVisible()
-    expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Set up AnthraciteMD' })).toBeVisible()
+    expect(screen.getByLabelText('Create owner password')).toHaveFocus()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('AMD-001/S3 R1-S2 renders sign-in only after authoritative claimed-host discovery', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockImplementationOnce(() => response(401, { error: { code: 'unauthenticated', message: 'Authentication required.' } }))
+      .mockImplementationOnce(() => response(200, { state: 'login_required' })))
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Sign in to AnthraciteMD' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Set up AnthraciteMD' })).not.toBeInTheDocument()
+  })
+
+  it('AMD-001/S3 R2-S2 keeps a mismatched owner password in the browser without submitting it', async () => {
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => response(401, { error: { code: 'unauthenticated', message: 'Authentication required.' } }))
+      .mockImplementationOnce(() => response(200, { state: 'setup_required' }))
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<App />)
+    await user.type(await screen.findByLabelText('Create owner password'), 'correct horse battery staple')
+    await user.type(screen.getByLabelText('Confirm owner password'), 'different password')
+    await user.click(screen.getByRole('button', { name: 'Create owner' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('The passwords do not match.')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('AMD-001/S3 R2-S3 refreshes a stale first-owner claim into normal sign-in', async () => {
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => response(401, { error: { code: 'unauthenticated', message: 'Authentication required.' } }))
+      .mockImplementationOnce(() => response(200, { state: 'setup_required' }))
+      .mockImplementationOnce(() => response(409, { error: { code: 'owner_setup_unavailable', message: 'Owner setup is unavailable.' } }))
+      .mockImplementationOnce(() => response(401, { error: { code: 'unauthenticated', message: 'Authentication required.' } }))
+      .mockImplementationOnce(() => response(200, { state: 'login_required' }))
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(await screen.findByLabelText('Create owner password'), 'correct horse battery staple')
+    await user.type(screen.getByLabelText('Confirm owner password'), 'correct horse battery staple')
+    await user.click(screen.getByRole('button', { name: 'Create owner' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in to AnthraciteMD' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Set up AnthraciteMD' })).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(5)
   })
 
   it('fails closed with recovery when the workspace success payload is malformed', async () => {
@@ -335,7 +380,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
 
     await user.click(await screen.findByRole('treeitem', { name: /Alpha/ }))
 
-    expect(await screen.findByRole('heading', { name: 'Sign in to GraphiteMD' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Sign in to AnthraciteMD' })).toBeVisible()
   })
 
   it('keeps the workspace shell usable when a note success payload is malformed', async () => {
@@ -637,7 +682,7 @@ describe('GMD-002/S1 responsive browse shell', () => {
     expect(await within(navigation).findByRole('status', { name: 'Search index status' })).toHaveTextContent('Index rebuilt. 2 notes indexed.')
   })
 
-  it('GMD-003/S1 R2-S1 mounts and removes only the active declared System Status contribution', async () => {
+  it('AMD-003/S1 R2-S1 mounts and removes only the active declared System Status contribution', async () => {
     const active = { id: 'system-status', status: 'active', manifest: { name: 'System Status', version: '1.0.0', permissions: ['status:read'] }, contributions: { views: [{ id: 'system-status', title: 'System Status', surface: 'context', renderer: 'system-status' }] } }
     const disabled = { ...active, status: 'disabled', contributions: {} }
     const fetchMock = vi.fn()
