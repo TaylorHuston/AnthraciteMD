@@ -366,6 +366,7 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 | S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/server/app/security/owner_setup_service.ts#createOwner` | supporting | Enforces password policy and atomic create-only-if-absent ownership. |
 | S3/R3 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Rejects non-configured Origins before credential work and bounds setup attempts independently from login. |
 | S3/R1-S2, S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/web/src/App.tsx#App` and `apps/web/src/App.tsx#FirstOwnerSetup` | primary | Selects authoritative setup/sign-in state, confirms locally, prevents duplicate submission, and reloads bootstrap after a claimed race. |
+| S3/R1-S1, S3/R2-S2 | `apps/web/src/App.stories.tsx#FirstOwnerSetup`, `#FirstOwnerSetupPending`, and `#FirstOwnerSetupServerError` | supporting | Provides deterministic rendered setup, pending, and server-validation states for Storybook review. |
 
 #### Implementation Gaps
 

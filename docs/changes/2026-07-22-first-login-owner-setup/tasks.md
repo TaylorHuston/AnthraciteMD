@@ -70,21 +70,21 @@ status: in_review
 - [x] 5.5 Confirm existing ADR assumptions remain true.
 - [x] 5.6 Run database, real HTTP, browser, production artifact, desktop, and mobile evidence in disposable empty-owner state.
 - [x] 5.7 Reopen any claim whose proof is skipped, undiscovered, too broad, or boundary-mismatched.
-- [ ] 5.8 Run the full aggregate candidate gate freshly on the exact committed candidate and record counts/freshness.
-- [ ] 5.9 Run scoped `sdd validate` after Epic reconciliation.
+- [x] 5.8 Run the full aggregate candidate gate freshly on the exact committed candidate and record counts/freshness.
+- [x] 5.9 Run scoped `sdd validate` after Epic reconciliation.
 
 ### 6. Review And Closeout
 
-- [ ] 6.1 Update README Local Development and Self-Hosting guidance with browser-first setup, retained CLI alternatives, and the unclaimed-host private-network warning.
-- [ ] 6.2 Run `/sdd-review` as the independent local integration gate.
-- [ ] 6.3 Record a clean review or `review.md` path.
-- [ ] 6.4 Resolve or explicitly defer every validated review finding.
-- [ ] 6.5 Record manual UI confirmation with canonical status vocabulary.
-- [ ] 6.6 Reconcile completed-work wording across Change, AMD-001, README, and any affected closed current-state claims.
-- [ ] 6.7 Keep machine-readable status aligned with Resume Here and every closeout surface.
-- [ ] 6.8 Keep `status: in_review` while review and closeout gates are underway.
-- [ ] 6.9 Record an immutable committed review candidate and run every required candidate gate on it.
-- [ ] 6.10 Test the prospective integration tree when it materially differs from the reviewed source tree.
+- [x] 6.1 Update README Local Development and Self-Hosting guidance with browser-first setup, retained CLI alternatives, and the unclaimed-host private-network warning.
+- [x] 6.2 Run `/sdd-review` as the independent local integration gate.
+- [x] 6.3 Record a clean review in this ledger; no `review.md` is required because no unresolved finding remains.
+- [x] 6.4 Resolve or explicitly defer every validated review finding.
+- [x] 6.5 Record manual UI confirmation with canonical status vocabulary.
+- [x] 6.6 Reconcile completed-work wording across Change, AMD-001, README, and any affected closed current-state claims.
+- [x] 6.7 Keep machine-readable status aligned with Resume Here and every closeout surface.
+- [x] 6.8 Keep `status: in_review` while review and closeout gates are underway.
+- [x] 6.9 Record an immutable committed review candidate and run every required candidate gate on it.
+- [x] 6.10 Test the prospective integration tree when it materially differs from the reviewed source tree; it is identical to the source tree, so source proof is reusable.
 - [ ] 6.11 Merge only after ready review and explicit user authorization.
 - [ ] 6.12 Close with `sdd change close` only after review, manual acceptance, integration proof, and authorization gates pass.
 
@@ -105,6 +105,8 @@ status: in_review
 | 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R1-S1/R1-S2` observes fresh/claimed owner state through the real Adonis route while preserving existing auth behavior. | passing |
 | 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R2-S1` through `R3-S2` prove success, invalid input, concurrency, session-failure recovery, Origin/CSRF rejection, and rate bounding. | passing |
 | 2026-07-22 | `pnpm --filter @anthracitemd/web test -- App.test.tsx`, `pnpm test:storybook`, and `pnpm test:e2e` | focused web, rendered Storybook, deterministic E2E | Browser bootstrap, mismatch non-submission, setup states, and production first claim across desktop/mobile. | passing; Storybook reports a pre-existing React async-act console warning. |
+| 2026-07-22 | `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:storybook && pnpm test:e2e && pnpm audit --audit-level=high` at `5ef27125aadc7edd725a5739bf342ac1deca6d37` | fresh aggregate candidate gate | Lint/typecheck; 16 contract, 4 domain, 40 workspace, 17 SDK, 69 web, 121 server, 1 system-status, and 2 Assistant tests; production build; 34 Storybook tests; 2 production E2E tests; dependency audit. | passing; build retains the existing >500 kB chunk advisory and Storybook retains its async-act warning. |
+| 2026-07-22 | `python3 /Users/taylor/.agents/skills/sdd-orphan-audit/scripts/sdd_orphan_audit.py . --epic AMD-001 --changed-from develop --format json` | reverse traceability | 14 changed candidates; no missing Implemented By or Verified By references and no tests without scenario-mapped evidence. | passing after mapping the Storybook presentation support. |
 
 ## Manual Feedback
 
@@ -185,13 +187,13 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 - Project-defined aggregate command or authoritative constituent source: README root scripts plus security audit; run `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:storybook`, `pnpm test:e2e`, and `pnpm audit --audit-level=high`.
 - Aggregate gate required before `in_review`: yes.
 - Trigger or project-policy reason: authentication/security behavior crosses domain, persistence, HTTP, typed contracts, session state, browser presentation, and production E2E.
-- Exact committed source candidate: remediation commit pending; aggregate gate must run on that immutable ref.
+- Exact committed source candidate: `5ef27125aadc7edd725a5739bf342ac1deca6d37` (fresh aggregate gate completed).
 - Freshness and cache treatment: run every constituent freshly after the final implementation commit; record test/Storybook/E2E counts and build execution rather than cache-only success.
-- Aggregate result and meaningful execution/count evidence: pending remediation commit and aggregate run.
-- Post-gate evidence-record-only changes and affected checks rerun: classify after execution; rerun validation and any check whose inspected source or contract changes.
-- Prospective integration gate required: yes when the reviewed change branch and `develop` produce a materially different tree.
+- Aggregate result and meaningful execution/count evidence: passing; commands and counts recorded in the Verification Ledger.
+- Post-gate evidence-record-only changes and affected checks rerun: this ledger/Epic evidence commit changes no executable, test, dependency, generated, or gate-observed artifact; rerun scoped validation and reverse traceability only.
+- Prospective integration gate required: no; `develop` is the merge base and `git merge-tree --write-tree develop 5ef2712` equals the source tree.
 - Current target and prospective integration tree/ref: `develop`; `git merge-tree --write-tree develop HEAD` is clean and the target has not advanced.
-- Integration-candidate result or reason source proof is reusable: determine after the aggregate candidate result is recorded.
+- Integration-candidate result or reason source proof is reusable: `develop` is the merge base, and its merge tree equals `5ef2712`.
 - Remote CI role: corroborating if available; local candidate proof is required.
 
 ## Manual UI Confirmation
@@ -224,14 +226,14 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 ## Review Handoff Candidate
 
 - Integration target / merge base: `develop` / `d1d2e2a64b42c454eb635d308c027b77b9c13960`.
-- Candidate source commit: remediation commit pending.
+- Candidate source commit: `5ef27125aadc7edd725a5739bf342ac1deca6d37`.
 - Source differs from target when implementation changed: expected yes.
-- Intended implementation fully committed: prior implementation is committed; review remediation is pending commit.
-- Unrelated dirty state preserved: no unrelated application changes; recheck before aggregate proof.
+- Intended implementation fully committed: yes.
+- Unrelated dirty state preserved: no unrelated application changes at aggregate execution.
 - Commit-sensitive generated-contract / diff / integration checks: runtime contract tests, changed-file inventory, scoped SDD validation, and prospective integration tree.
-- Verification Scope Decision and aggregate candidate evidence: required and pending.
-- Post-gate evidence-only changes classified and affected checks rerun: pending.
-- Prospective integration tree and required gate evidence: pending.
+- Verification Scope Decision and aggregate candidate evidence: required and passing at `5ef2712`.
+- Post-gate evidence-only changes classified and affected checks rerun: scoped validation and reverse traceability passed.
+- Prospective integration tree and required gate evidence: source tree is identical; aggregate proof is reusable.
 - Required risk, fan-out, environment, or verification rows still pending or blocked: manual owner acceptance and aggregate candidate proof only.
 - Pattern parity, boundary contract, and stateful transition matrices reconciled or not applicable with reason: reconciled with focused proof; manual acceptance remains separate.
 - Capability authority, content-budget/provenance conservation, and filesystem mutation-order proof reconciled or not applicable: capability/content budgets are not applicable; machine-local state create-before-auth and no-mutation failure paths require proof.
@@ -261,9 +263,9 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 - Evidence-claim integrity checked: yes; one missing client recovery assertion was remediated.
 - Decision fan-out reconciled: yes.
 - Verification environment obligations resolved: all automated/disposable checks complete; manual owner acceptance pending user.
-- Verification Scope Decision current and required candidate gates passed: aggregate gate pending the remediation commit.
-- Immutable review handoff candidate: pending remediation commit.
-- Tested integration candidate matches actual integrated tree, or rerun recorded: merge tree is clean; final source proof pending aggregate result.
+- Verification Scope Decision current and required candidate gates passed: yes at `5ef2712`.
+- Immutable review handoff candidate: `5ef2712`; a following evidence-only commit is permitted after scoped validation and traceability rerun.
+- Tested integration candidate matches actual integrated tree, or rerun recorded: prospective tree equals `5ef2712` source tree, so the aggregate proof is reusable.
 - Manual UI confirmation status: pending user.
 - Rendered UI verification status: passing; manual user acceptance remains pending.
 - PR / merge state: not started; no authorization inferred.
