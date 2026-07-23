@@ -93,7 +93,7 @@ status: in_progress
 | Date | Slice | Result | Artifact Reconciliation | Commit |
 |---|---|---|---|---|
 | 2026-07-22 | AMD-001/S3 R1 server bootstrap boundary | Added the closed binary bootstrap contract and unauthenticated owner-existence route; it reveals no owner, session, workspace, or path data. | Promoted Change, added S3 as partial/partial, reconciled S1 as an alternative CLI path, and recorded server-only R1 gaps. | `b6fddc9` |
-| 2026-07-22 | AMD-001/S3 R2-R3 server claim boundary | Added the strict setup envelope, atomic owner claim, normal session issuance, explicit exact-Origin rejection, CSRF parity, and bounded attempt handling. | Expanded S3 implementation/evidence maps; browser-specific gaps remain explicit. | pending |
+| 2026-07-22 | AMD-001/S3 R2-R3 server claim boundary | Added the strict setup envelope, atomic owner claim, normal session issuance, explicit exact-Origin rejection, CSRF parity, and bounded attempt handling. | Expanded S3 implementation/evidence maps; browser-specific gaps remain explicit. | `d8ae369` |
 
 ## Verification Ledger
 
