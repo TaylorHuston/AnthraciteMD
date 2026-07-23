@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: in_review
 ---
 # Tasks: AnthraciteMD Rebrand
 
@@ -135,6 +135,6 @@ status: in_progress
 
 - Review verdict: `ready` at `5aa7af48216cf8c9390e3279ea4aa3a6138330bc`; no blocking or required findings remain after remediation.
 - Review record: task ledger (no separate `review.md` created); manual confirmation remains `pending user`.
-- Change status: transitioning back to `in_review` after review remediation.
+- Change status: `in_review`; technical review is ready while manual confirmation remains pending.
 - Epic/current docs/topology reconciliation: complete. Historical GMD review reports remain provenance-preserving evidence and are not represented as fresh AMD verification reports.
 - PR, merge, and closeout: not authorized and pending manual confirmation.
