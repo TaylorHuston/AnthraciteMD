@@ -93,6 +93,7 @@ status: in_progress
 | Date | Slice | Result | Artifact Reconciliation | Commit |
 |---|---|---|---|---|
 | 2026-07-22 | AMD-001/S3 R1 server bootstrap boundary | Added the closed binary bootstrap contract and unauthenticated owner-existence route; it reveals no owner, session, workspace, or path data. | Promoted Change, added S3 as partial/partial, reconciled S1 as an alternative CLI path, and recorded server-only R1 gaps. | `b6fddc9` |
+| 2026-07-22 | AMD-001/S3 R2-R3 server claim boundary | Added the strict setup envelope, atomic owner claim, normal session issuance, explicit exact-Origin rejection, CSRF parity, and bounded attempt handling. | Expanded S3 implementation/evidence maps; browser-specific gaps remain explicit. | pending |
 
 ## Verification Ledger
 
@@ -101,6 +102,7 @@ status: in_progress
 | 2026-07-22 | Current auth code, tests, contracts, E2E fixture, README, PRD, AMD-001, and accepted ADRs inspected | planning evidence | The plan uses current service authority and identifies the missing browser boundary without inventing a second credential store. | complete |
 | 2026-07-22 | `pnpm --filter @anthracitemd/contracts test -- index.test.ts` | focused automated | `AMD-001/S3 R1` contract accepts only `setup_required` or `login_required` and rejects extra data. | passing |
 | 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R1-S1/R1-S2` observes fresh/claimed owner state through the real Adonis route while preserving existing auth behavior. | passing |
+| 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R2-S1` through `R3-S2` prove success, invalid input, concurrency, session-failure recovery, Origin/CSRF rejection, and rate bounding. | passing |
 
 ## Manual Feedback
 

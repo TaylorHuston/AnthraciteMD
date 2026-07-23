@@ -51,7 +51,7 @@ A self-hosting owner will be able to establish one local AnthraciteMD account fr
 |---|---|---|---|---|---|
 | S1 | implemented | partial | Establish an owner account and authenticate a browser session. | 2026-07-22 | Host-local setup, generation-bound browser sessions, compatible configuration/state migration, XSRF enforcement, and exact credentialed origins are implemented; terminal masking awaits manual confirmation. |
 | S2 | implemented | partial | Maintain and recover access without weakening session boundaries. | 2026-07-19 | Password maintenance, owner-facing change form, cross-process global revocation, host reset, and reconnect boundaries are implemented; manual host/browser confirmation remains. |
-| S3 | partial | partial | Set up a fresh host from the browser. | 2026-07-22 | The minimal typed setup-versus-login discovery boundary is implemented and HTTP-tested; browser presentation and owner-creation mutation remain in progress. |
+| S3 | partial | partial | Set up a fresh host from the browser. | 2026-07-22 | The protected atomic server claim and typed discovery boundaries are implemented and HTTP-tested; browser presentation remains in progress. |
 
 ## Stories
 
@@ -360,25 +360,35 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 | S3/R1 | `apps/server/start/routes.ts#/api/v1/auth/bootstrap` | primary | Exposes only the typed setup-required versus login-required state from authoritative owner existence. |
 | S3/R1 | `apps/server/app/security/owner_setup_service.ts#hasOwner` | supporting | Reads the machine-local owner authority without exposing credential or workspace data. |
 | S3/R1 | `packages/contracts/src/index.ts#AuthBootstrapResponse` | supporting | Defines the closed runtime contract used by browser clients. |
+| S3/R2-S1, S3/R2-S3, S3/R2-S4 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Creates the first owner, issues the normal generation-bound session, rejects stale claimers, and preserves a committed owner when session issuance fails. |
+| S3/R2 | `packages/contracts/src/index.ts#FirstOwnerSetupRequest` | supporting | Defines the closed browser setup request envelope. |
+| S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/server/app/security/owner_setup_service.ts#createOwner` | supporting | Enforces password policy and atomic create-only-if-absent ownership. |
+| S3/R3 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Rejects non-configured Origins before credential work and bounds setup attempts independently from login. |
 
 #### Implementation Gaps
 
 - `S3/R1-S1`: The browser setup presentation is not implemented yet; only its server discovery boundary exists.
 - `S3/R1-S2`: The browser sign-in choice based on claimed state is not implemented yet; only its server discovery boundary exists.
-- `S3/R2`: Not implemented yet.
-- `S3/R3`: Not implemented yet.
+- `S3/R2-S1` through `S3/R2-S3`: Browser presentation, confirmation, and stale-claim recovery remain unimplemented.
+- `S3/R3`: Browser-facing setup error handling and secret/log inspection remain pending.
 
 #### Verified By
 
 | Requirement / Scenario | Evidence | Proves | Status |
 |---|---|---|---|
 | S3/R1-S1, S3/R1-S2 | `packages/contracts/src/index.test.ts#AMD-001/S3 R1 accepts only the binary bootstrap state` and `apps/server/tests/http/authentication.test.ts#R1-S1 and R1-S2 disclose only the required setup state` | The contract rejects extra state, a fresh host returns only `setup_required`, and a claimed host returns only `login_required`. | passing |
+| S3/R2-S1 | `apps/server/tests/http/authentication.test.ts#R2-S1 creates the owner once and establishes the normal protected session` | A valid first claim returns the owner, regenerates an authenticated session, and opens the protected workspace. | passing |
+| S3/R2-S2 | `apps/server/tests/http/authentication.test.ts#R2-S2 rejects an invalid password without claiming the host` | Server policy rejects invalid input without owner mutation. | passing |
+| S3/R2-S3 | `apps/server/tests/http/authentication.test.ts#R2-S3 lets one concurrent setup claim win without giving the loser a session` | One concurrent claimant wins; the loser cannot use its anonymous cookie as an authenticated session. | passing |
+| S3/R2-S4 | `apps/server/tests/http/authentication.test.ts#R2-S4 keeps a committed owner usable when session issuance fails` | Session failure does not roll back the committed credential; normal sign-in recovers. | passing |
+| S3/R3-S1 | `apps/server/tests/http/authentication.test.ts#R3-S1 rejects missing XSRF proof and an untrusted Origin without mutation` | Shield CSRF and the explicit exact-Origin guard reject without creating an owner. | passing |
+| S3/R3-S2 | `apps/server/tests/http/authentication.test.ts#R3-S2 bounds repeated claimed-host setup attempts without replacing the credential` | Bounded repeated attempts never replace an existing credential. | passing |
 
 #### Verification Gaps
 
 - `S3/R1-S1`: Rendered browser setup presentation remains unverified.
 - `S3/R1-S2`: Rendered browser sign-in selection remains unverified.
-- `S3/R2-S1` through `S3/R3-S2`: Not implemented or verified yet.
+- Browser presentation, mismatch behavior, stale-claim recovery, rendered UI, E2E, and secret/log inspection remain unverified.
 
 #### Story Notes
 

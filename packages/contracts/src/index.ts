@@ -114,6 +114,11 @@ export const AuthBootstrapResponse = Type.Object({
 }, { additionalProperties: false })
 export type AuthBootstrapResponse = Static<typeof AuthBootstrapResponse>
 
+export const FirstOwnerSetupRequest = Type.Object({
+  password: Type.String(),
+}, { additionalProperties: false })
+export type FirstOwnerSetupRequest = Static<typeof FirstOwnerSetupRequest>
+
 export const ErrorResponse = Type.Object({
   error: Type.Object({ code: Type.String(), message: Type.Optional(Type.String()) }),
   currentRevision: Type.Optional(NoteRevision),
