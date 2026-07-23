@@ -51,7 +51,7 @@ A self-hosting owner will be able to establish one local AnthraciteMD account fr
 |---|---|---|---|---|---|
 | S1 | implemented | partial | Establish an owner account and authenticate a browser session. | 2026-07-22 | Host-local setup, generation-bound browser sessions, compatible configuration/state migration, XSRF enforcement, and exact credentialed origins are implemented; terminal masking awaits manual confirmation. |
 | S2 | implemented | partial | Maintain and recover access without weakening session boundaries. | 2026-07-19 | Password maintenance, owner-facing change form, cross-process global revocation, host reset, and reconnect boundaries are implemented; manual host/browser confirmation remains. |
-| S3 | partial | partial | Set up a fresh host from the browser. | 2026-07-22 | The protected atomic server claim and typed discovery boundaries are implemented and HTTP-tested; browser presentation remains in progress. |
+| S3 | implemented | partial | Set up a fresh host from the browser. | 2026-07-22 | Browser setup, protected atomic claim, and typed discovery are implemented; rendered fresh-state and manual confirmation remain. |
 
 ## Stories
 
@@ -281,7 +281,7 @@ The system SHALL restore an authenticated browser from valid service-owned sessi
 
 ### Story S3: Set Up A Fresh Host From The Browser
 
-Implementation: partial
+Implementation: implemented
 Verification: partial
 Created: 2026-07-22
 Modified: 2026-07-22
@@ -364,13 +364,11 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 | S3/R2 | `packages/contracts/src/index.ts#FirstOwnerSetupRequest` | supporting | Defines the closed browser setup request envelope. |
 | S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/server/app/security/owner_setup_service.ts#createOwner` | supporting | Enforces password policy and atomic create-only-if-absent ownership. |
 | S3/R3 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Rejects non-configured Origins before credential work and bounds setup attempts independently from login. |
+| S3/R1-S2, S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/web/src/App.tsx#App` and `apps/web/src/App.tsx#FirstOwnerSetup` | primary | Selects authoritative setup/sign-in state, confirms locally, prevents duplicate submission, and reloads bootstrap after a claimed race. |
 
 #### Implementation Gaps
 
-- `S3/R1-S1`: The browser setup presentation is not implemented yet; only its server discovery boundary exists.
-- `S3/R1-S2`: The browser sign-in choice based on claimed state is not implemented yet; only its server discovery boundary exists.
-- `S3/R2-S1` through `S3/R2-S3`: Browser presentation, confirmation, and stale-claim recovery remain unimplemented.
-- `S3/R3`: Browser-facing setup error handling and secret/log inspection remain pending.
+- None.
 
 #### Verified By
 
@@ -383,12 +381,14 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 | S3/R2-S4 | `apps/server/tests/http/authentication.test.ts#R2-S4 keeps a committed owner usable when session issuance fails` | Session failure does not roll back the committed credential; normal sign-in recovers. | passing |
 | S3/R3-S1 | `apps/server/tests/http/authentication.test.ts#R3-S1 rejects missing XSRF proof and an untrusted Origin without mutation` | Shield CSRF and the explicit exact-Origin guard reject without creating an owner. | passing |
 | S3/R3-S2 | `apps/server/tests/http/authentication.test.ts#R3-S2 bounds repeated claimed-host setup attempts without replacing the credential` | Bounded repeated attempts never replace an existing credential. | passing |
+| S3/R1-S1, S3/R1-S2, S3/R2-S2 | `apps/web/src/App.test.tsx#AMD-001/S3 R1-S1 renders first-owner setup after authoritative fresh-host discovery`, `apps/web/src/App.test.tsx#AMD-001/S3 R1-S2 renders sign-in only after authoritative claimed-host discovery`, and `apps/web/src/App.test.tsx#AMD-001/S3 R2-S2 keeps a mismatched owner password in the browser without submitting it` | The browser uses the typed state, focuses setup, hides it on claimed hosts, and never sends mismatched credentials. | passing |
+| S3/R1-S1, S3/R2-S1 | `tests/e2e/foundation.spec.ts#foundation owner path works on desktop and a narrow mobile browser` | The production artifact begins with no owner, creates it in the browser, and then continues through authenticated desktop/mobile coverage. | passing |
 
 #### Verification Gaps
 
 - `S3/R1-S1`: Rendered browser setup presentation remains unverified.
 - `S3/R1-S2`: Rendered browser sign-in selection remains unverified.
-- Browser presentation, mismatch behavior, stale-claim recovery, rendered UI, E2E, and secret/log inspection remain unverified.
+- Stale-claim UI recovery and direct fresh-state rendered network/log inspection remain pending; the required production E2E and Storybook checks pass.
 
 #### Story Notes
 

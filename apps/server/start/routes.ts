@@ -30,6 +30,7 @@ import { configuredOrigins } from '../config/cors.js'
 
 const workspaceRoot = anthraciteEnvironmentValue(process.env, 'WORKSPACE_ROOT')
 const ownerSetup = new OwnerSetupService(resolveSecurityStateDirectory())
+const ownerSetupReady = ownerSetup.hasOwner()
 const workspace = new ConfiguredWorkspaceAuthority(workspaceRoot)
 const search = workspaceRoot
   ? new LocalSearchService(workspaceRoot, workspace)
@@ -178,6 +179,7 @@ router.post('/api/v1/auth/login', async ({ auth, request, response, session }) =
 })
 
 router.get('/api/v1/auth/current', async ({ auth, response }) => {
+  await ownerSetupReady
   try {
     await auth.use('web').authenticate()
     return { owner: { id: 'owner' } }

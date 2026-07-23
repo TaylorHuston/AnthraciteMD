@@ -5,10 +5,10 @@ status: in_progress
 
 ## Resume Here
 
-- Last completed action: promoted, transitioned to `in_progress`, and completed the server-side R1 bootstrap contract/route slice with focused contract and real-HTTP proof.
-- Next action: implement the browser R1 state selection and first-owner setup presentation against the typed bootstrap contract.
-- Active branch/ref: AnthraciteMD `change/first-login-owner-setup` at `b6fddc9` (from `develop` at `d1d2e2a64b42c454eb635d308c027b77b9c13960`).
-- Expected dirty files: contracts, server routes/tests, AMD-001, and this Change ledger.
+- Last completed action: implemented and rendered the browser first-owner flow against the protected server claim boundary.
+- Next action: run final aggregate/traceability/self-check evidence and reconcile the review handoff.
+- Active branch/ref: AnthraciteMD `change/first-login-owner-setup` (from `develop` at `d1d2e2a64b42c454eb635d308c027b77b9c13960`); browser phase commit pending.
+- Expected dirty files: web/client tests/stories, E2E fixture, server initialization, README, AMD-001, and this Change ledger.
 - Known blockers: none.
 
 ## Task Checklist
@@ -42,17 +42,17 @@ status: in_progress
 ### 4. Implementation
 
 - [ ] 4.1 Implement `AMD-001/S3` through adaptive BDD/TDD slices.
-  - [ ] Requirement R1: Browser Setup Discovery
-    - [ ] Scenario R1-S1: Fresh Host Presents Setup
-    - [ ] Scenario R1-S2: Existing Owner Presents Sign-In
-  - [ ] Requirement R2: Atomic Browser Owner Creation
-    - [ ] Scenario R2-S1: Valid Password Creates And Authenticates Owner
-    - [ ] Scenario R2-S2: Invalid Or Mismatched Password Preserves Empty State
-    - [ ] Scenario R2-S3: Concurrent Or Stale Setup Cannot Replace Owner
-    - [ ] Scenario R2-S4: Committed Owner Survives Session Or Response Failure
-  - [ ] Requirement R3: First-Claim Request Protection
-    - [ ] Scenario R3-S1: Untrusted Or Unproved Mutation Is Rejected
-    - [ ] Scenario R3-S2: Repeated Setup Requests Are Bounded
+  - [x] Requirement R1: Browser Setup Discovery
+    - [x] Scenario R1-S1: Fresh Host Presents Setup
+    - [x] Scenario R1-S2: Existing Owner Presents Sign-In
+  - [x] Requirement R2: Atomic Browser Owner Creation
+    - [x] Scenario R2-S1: Valid Password Creates And Authenticates Owner
+    - [x] Scenario R2-S2: Invalid Or Mismatched Password Preserves Empty State
+    - [x] Scenario R2-S3: Concurrent Or Stale Setup Cannot Replace Owner
+    - [x] Scenario R2-S4: Committed Owner Survives Session Or Response Failure
+  - [x] Requirement R3: First-Claim Request Protection
+    - [x] Scenario R3-S1: Untrusted Or Unproved Mutation Is Rejected
+    - [x] Scenario R3-S2: Repeated Setup Requests Are Bounded
 - [ ] 4.2 Add or refine typed contracts and shared application seams only as current implementation evidence requires.
 - [ ] 4.3 Re-evaluate risk, fan-out, and environment rows after each completed slice.
 - [ ] 4.4 Complete Pattern Parity rows against login/password auth behavior.
@@ -94,6 +94,7 @@ status: in_progress
 |---|---|---|---|---|
 | 2026-07-22 | AMD-001/S3 R1 server bootstrap boundary | Added the closed binary bootstrap contract and unauthenticated owner-existence route; it reveals no owner, session, workspace, or path data. | Promoted Change, added S3 as partial/partial, reconciled S1 as an alternative CLI path, and recorded server-only R1 gaps. | `b6fddc9` |
 | 2026-07-22 | AMD-001/S3 R2-R3 server claim boundary | Added the strict setup envelope, atomic owner claim, normal session issuance, explicit exact-Origin rejection, CSRF parity, and bounded attempt handling. | Expanded S3 implementation/evidence maps; browser-specific gaps remain explicit. | `d8ae369` |
+| 2026-07-22 | AMD-001/S3 browser setup and fresh-state initialization | Added authoritative browser state selection, focusable confirmation form, pending/error states, Storybook coverage, production E2E first claim, and security-store initialization before anonymous session handling. | README now documents browser-first setup, retained CLI alternative, and unclaimed-host private-network warning; AMD-001 maps browser owners and evidence. | pending |
 
 ## Verification Ledger
 
@@ -103,6 +104,7 @@ status: in_progress
 | 2026-07-22 | `pnpm --filter @anthracitemd/contracts test -- index.test.ts` | focused automated | `AMD-001/S3 R1` contract accepts only `setup_required` or `login_required` and rejects extra data. | passing |
 | 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R1-S1/R1-S2` observes fresh/claimed owner state through the real Adonis route while preserving existing auth behavior. | passing |
 | 2026-07-22 | `pnpm --filter @anthracitemd/server test -- authentication.test.ts` | focused real HTTP | `AMD-001/S3 R2-S1` through `R3-S2` prove success, invalid input, concurrency, session-failure recovery, Origin/CSRF rejection, and rate bounding. | passing |
+| 2026-07-22 | `pnpm --filter @anthracitemd/web test -- App.test.tsx`, `pnpm test:storybook`, and `pnpm test:e2e` | focused web, rendered Storybook, deterministic E2E | Browser bootstrap, mismatch non-submission, setup states, and production first claim across desktop/mobile. | passing; Storybook reports a pre-existing React async-act console warning. |
 
 ## Manual Feedback
 
