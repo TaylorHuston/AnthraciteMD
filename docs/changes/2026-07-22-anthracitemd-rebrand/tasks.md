@@ -20,7 +20,7 @@ status: in_progress
 - [x] R5 reconcile README, changelog, current ADRs, canonical Epics/IDs/directories, current private planning truth, repository guidance, and SDD config.
 - [x] Render desktop/mobile sign-in and workbench identity; inspect accessibility, console, and network state.
 - [x] Run focused and aggregate verification, stale-identifier inventory, reverse traceability, and implementation self-check.
-- [ ] Commit each verified phase, record the immutable candidate, transition to `in_review`, and hand off to `/sdd-review`.
+- [ ] Transition the recorded candidate to `in_review` and hand off to `/sdd-review`.
 
 ## Implementation Ledger
 
@@ -28,7 +28,7 @@ status: in_progress
 |---|---|---|---|
 | 2026-07-22 | Replan | Compatibility, migration, auth, topology, and verification obligations resolved. | planning only |
 | 2026-07-22 | R1-R4 | Canonical identity, configuration compatibility, safe state migration, and auth transition implemented; combined because package/config/migration imports overlap the same runtime files. | `fac4c2c` |
-| 2026-07-22 | R5 | GitHub repository, local checkout, origin, SDD IDs, private planning directory/current truth, Epic IDs/directories, and rendered identity reconciled. | evidence commit pending |
+| 2026-07-22 | R5 | GitHub repository, local checkout, origin, SDD IDs, private planning directory/current truth, Epic IDs/directories, and rendered identity reconciled. | `046e82c`; workspace index `dcaa925`; private planning `e6919508`, `26e44c41` |
 
 ## Verification Ledger
 
@@ -100,7 +100,7 @@ status: in_progress
 
 - Aggregate gate required: yes; the change crosses packages, persistence, auth, process-global configuration, UI, SDD truth, and repository topology.
 - Authoritative gates: root lint, typecheck, test, build, Storybook, E2E, audit, scoped SDD validation, stale-identifier inventory, and clean prospective integration tree.
-- Exact candidate and results: implementation `fac4c2c`; final topology/evidence commit recorded below after creation.
+- Exact candidate and results: application implementation `fac4c2c` plus topology/evidence `046e82c`; all recorded gates passed.
 - Remote CI role: corroborating.
 
 ## Manual UI Confirmation
@@ -124,8 +124,8 @@ status: in_progress
 ## Review Handoff Candidate
 
 - Integration target: `develop`
-- Candidate source commit: `fac4c2c` plus pending topology-evidence commit
-- Intended implementation committed: yes; topology evidence commit pending
+- Candidate source commits: `fac4c2c`, `046e82c`
+- Intended implementation and topology evidence committed: yes
 - Required risk, fan-out, environment, aggregate, reverse-traceability, and fresh-context self-check gates: passed
 
 ## Closeout
