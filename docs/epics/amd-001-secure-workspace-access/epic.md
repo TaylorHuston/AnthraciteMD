@@ -52,7 +52,7 @@ A self-hosting owner will be able to establish one local AnthraciteMD account fr
 |---|---|---|---|---|---|
 | S1 | implemented | partial | Establish an owner account and authenticate a browser session. | 2026-07-22 | Host-local setup, generation-bound browser sessions, compatible configuration/state migration, XSRF enforcement, and exact credentialed origins are implemented; terminal masking awaits manual confirmation. |
 | S2 | implemented | partial | Maintain and recover access without weakening session boundaries. | 2026-07-19 | Password maintenance, owner-facing change form, cross-process global revocation, host reset, and reconnect boundaries are implemented; manual host/browser confirmation remains. |
-| S3 | implemented | partial | Set up a fresh host from the browser. | 2026-07-22 | Browser setup, protected atomic claim, and typed discovery are implemented; rendered fresh-state and manual confirmation remain. |
+| S3 | implemented | verified | Set up a fresh host from the browser. | 2026-07-22 | Browser setup, protected atomic claim, typed discovery, rendered checks, and manual acceptance are complete. |
 
 ## Stories
 
@@ -269,7 +269,7 @@ The system SHALL restore an authenticated browser from valid service-owned sessi
 | S2/R2-S1 | `apps/server/tests/commands/reset_owner.test.ts#R2-S1 requires explicit confirmation and matching secure password prompts` | Confirmed reset. | passing |
 | S2/R2-S2 | `apps/server/tests/security/owner_setup_service.test.ts#R2-S2 rolls back the credential when session invalidation fails before commit` | Interrupted reset rollback. | passing |
 | S2/R3-S1 | `apps/server/tests/http/authentication.test.ts#R2-S1 rejects a persisted session whose bound credential generation is no longer current` | Valid-session reconnection. | passing |
-| S2/R3-S2 | `apps/web/src/App.test.tsx#distinguishes an initial unauthenticated browser from an expired session` | Expired browser session state. | passing |
+| S2/R3-S2 | `apps/web/src/App.test.tsx#returns a note-read 401 to the expired-session login state` | Expired browser session state. | passing |
 
 #### Verification Gaps
 
@@ -283,7 +283,7 @@ The system SHALL restore an authenticated browser from valid service-owned sessi
 ### Story S3: Set Up A Fresh Host From The Browser
 
 Implementation: implemented
-Verification: partial
+Verification: verified
 Created: 2026-07-22
 Modified: 2026-07-22
 Last verified: 2026-07-22
@@ -359,14 +359,14 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 | Requirement / Scenario | Location / Anchor | Kind | Responsibility |
 |---|---|---|---|
 | S3/R1 | `apps/server/start/routes.ts#/api/v1/auth/bootstrap` | primary | Exposes only the typed setup-required versus login-required state from authoritative owner existence. |
-| S3/R1 | `apps/server/app/security/owner_setup_service.ts#hasOwner` | supporting | Reads the machine-local owner authority without exposing credential or workspace data. |
-| S3/R1 | `packages/contracts/src/index.ts#AuthBootstrapResponse` | supporting | Defines the closed runtime contract used by browser clients. |
+| S3/R1 | `apps/server/app/security/owner_setup_service.ts#hasOwner` | support | Reads the machine-local owner authority without exposing credential or workspace data. |
+| S3/R1 | `packages/contracts/src/index.ts#AuthBootstrapResponse` | support | Defines the closed runtime contract used by browser clients. |
 | S3/R2-S1, S3/R2-S3, S3/R2-S4 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Creates the first owner, issues the normal generation-bound session, rejects stale claimers, and preserves a committed owner when session issuance fails. |
-| S3/R2 | `packages/contracts/src/index.ts#FirstOwnerSetupRequest` | supporting | Defines the closed browser setup request envelope. |
-| S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/server/app/security/owner_setup_service.ts#createOwner` | supporting | Enforces password policy and atomic create-only-if-absent ownership. |
+| S3/R2 | `packages/contracts/src/index.ts#FirstOwnerSetupRequest` | support | Defines the closed browser setup request envelope. |
+| S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/server/app/security/owner_setup_service.ts#createOwner` | support | Enforces password policy and atomic create-only-if-absent ownership. |
 | S3/R3 | `apps/server/start/routes.ts#/api/v1/auth/setup` | primary | Rejects non-configured Origins before credential work and bounds setup attempts independently from login. |
 | S3/R1-S2, S3/R2-S1, S3/R2-S2, S3/R2-S3 | `apps/web/src/App.tsx#App` and `apps/web/src/App.tsx#FirstOwnerSetup` | primary | Selects authoritative setup/sign-in state, confirms locally, prevents duplicate submission, and reloads bootstrap after a claimed race. |
-| S3/R1-S1, S3/R2-S2 | `apps/web/src/App.stories.tsx#FirstOwnerSetup`, `#FirstOwnerSetupPending`, and `#FirstOwnerSetupServerError` | supporting | Provides deterministic rendered setup, pending, and server-validation states for Storybook review. |
+| S3/R1-S1, S3/R2-S2 | `apps/web/src/App.stories.tsx#FirstOwnerSetup` | presentation | Provides the deterministic rendered setup state for Storybook review; related pending and server-validation stories use the same component. |
 
 #### Implementation Gaps
 
@@ -388,7 +388,7 @@ The system SHALL protect browser owner setup with the configured exact-origin, C
 
 #### Verification Gaps
 
-- Manual owner acceptance remains pending for the disposable fresh-state walkthrough: create a valid password, then confirm reload/sign-in never reopens setup. Automated rendered desktop/mobile inspection, network/console review, Storybook, and deterministic production E2E are complete.
+- None for the currently accepted S3 behavior.
 
 #### Story Notes
 

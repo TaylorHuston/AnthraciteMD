@@ -198,7 +198,7 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 
 ## Manual UI Confirmation
 
-- Status: pending user
+- Status: accepted 2026-07-22
 - App URL / route: fresh disposable-state root URL on Apply-assigned non-conflicting ports.
 - Required setup or test data: empty machine-local security state, disposable Markdown workspace, exact allowed origin; keep the persistent 5174/3334 development service running separately.
 - Steps for the user:
@@ -208,6 +208,7 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
   4. Sign out or reload without the session and confirm normal sign-in appears, not setup.
   5. Sign in with the chosen password and confirm the workspace opens.
 - Expected result: the entire first-owner path works in the browser; setup is unavailable after the first successful claim; CLI is not required.
+- User confirmation: accepted after completing the walkthrough.
 - Feedback that would change artifacts: requiring host-local-only claim, a setup token, different copy/layout, different password rules, or allowing setup to reopen would require replan or design revision.
 
 ## Visual Verification Matrix
@@ -234,8 +235,8 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 - Verification Scope Decision and aggregate candidate evidence: required and passing at `5ef2712`.
 - Post-gate evidence-only changes classified and affected checks rerun: scoped validation and reverse traceability passed.
 - Prospective integration tree and required gate evidence: source tree is identical; aggregate proof is reusable.
-- Required risk, fan-out, environment, or verification rows still pending or blocked: manual owner acceptance and aggregate candidate proof only.
-- Pattern parity, boundary contract, and stateful transition matrices reconciled or not applicable with reason: reconciled with focused proof; manual acceptance remains separate.
+- Required risk, fan-out, environment, or verification rows still pending or blocked: none; manual owner acceptance and aggregate proof are complete.
+- Pattern parity, boundary contract, and stateful transition matrices reconciled or not applicable with reason: reconciled with focused proof and accepted manual confirmation.
 - Capability authority, content-budget/provenance conservation, and filesystem mutation-order proof reconciled or not applicable: capability/content budgets are not applicable; machine-local state create-before-auth and no-mutation failure paths require proof.
 - Evidence claims falsified against exact tests, assertions, routes, or observations: independent review found and fixed the stale-claim UI evidence gap.
 - Fresh-context failure-seeking passes completed: code/security, artifact, and UI passes complete; regression review remains after aggregate proof.
@@ -253,21 +254,21 @@ No design revisions yet. Existing auth-panel patterns are the accepted initial d
 - README/current-state docs and active/closed Change claims reconciled: README is current; no active competing Change.
 - ADR status: not applicable; accepted ADRs remain aligned.
 - Release communication current: README contains the user-facing browser-first setup and unclaimed-host warning.
-- `sdd-review` verdict: pending.
-- Review record: pending.
-- `review.md` findings resolved: not applicable until review.
+- `sdd-review` verdict: ready.
+- Review record: clean review evidence is recorded in this ledger; no `review.md` was required.
+- `review.md` findings resolved: not applicable; no unresolved review finding remains.
 - Planning updates resolved: no replans.
-- Implementation risk and confirmation rows resolved: yes, except manual owner acceptance.
+- Implementation risk and confirmation rows resolved: yes.
 - Pattern parity, boundary contract, and stateful transition rows resolved: yes.
 - Capability authority, content-budget/provenance conservation, and filesystem mutation-order proof resolved: machine-local state proof complete; other classes are not applicable.
 - Evidence-claim integrity checked: yes; one missing client recovery assertion was remediated.
 - Decision fan-out reconciled: yes.
-- Verification environment obligations resolved: all automated/disposable checks complete; manual owner acceptance pending user.
+- Verification environment obligations resolved: all automated/disposable checks and manual owner acceptance complete.
 - Verification Scope Decision current and required candidate gates passed: yes at `5ef2712`.
 - Immutable review handoff candidate: `5ef2712`; a following evidence-only commit is permitted after scoped validation and traceability rerun.
 - Tested integration candidate matches actual integrated tree, or rerun recorded: prospective tree equals `5ef2712` source tree, so the aggregate proof is reusable.
-- Manual UI confirmation status: pending user.
-- Rendered UI verification status: passing; manual user acceptance remains pending.
-- PR / merge state: not started; no authorization inferred.
+- Manual UI confirmation status: accepted 2026-07-22.
+- Rendered UI verification status: passing and manually accepted.
+- PR / merge state: merged locally into `develop` as `d1a4c3e776f41e47da17fe9080870bfd94b3f68d`; no PR or push.
 - Deferred scope accepted: recorded in proposal/design.
-- Change moved to `docs/changes/closed/`: no; private planned Change.
+- Change moved to `docs/changes/closed/`: yes, after the verified local merge into `develop`.
