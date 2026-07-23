@@ -1,6 +1,6 @@
 # Changelog
 
-All notable user-facing changes to GraphiteMD will be documented here.
+All notable user-facing changes to AnthraciteMD will be documented here.
 
 ## Unreleased
 

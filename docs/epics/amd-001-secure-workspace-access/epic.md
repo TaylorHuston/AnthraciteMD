@@ -1,6 +1,6 @@
 ---
 schema: sdd-epic-v2
-id: GMD-001
+id: AMD-001
 status: draft
 created: 2026-07-18
 modified: 2026-07-22
@@ -10,19 +10,19 @@ stories:
   - S2
 ---
 
-# GMD-001 Secure Workspace Access
+# AMD-001 Secure Workspace Access
 
 ## Product Context
 
-- PRD: Private GraphiteMD Product Brief / PRD resolved through SDD workspace topology.
-- Related Epic: [GMD-002 Markdown Workbench](../gmd-002-markdown-workbench/epic.md)
+- PRD: Private AnthraciteMD Product Brief / PRD resolved through SDD workspace topology.
+- Related Epic: [AMD-002 Markdown Workbench](../amd-002-markdown-workbench/epic.md)
 - Related ADR: [Service-First Web Architecture](../../adrs/2026-07-18-service-first-web-architecture.md)
 
-GraphiteMD runs where the user's files live and is accessed from other browsers over a private network. Network placement alone is not sufficient protection for private notes, credentials, and eventual agent authority, so the first hosted slice needs a built-in single-owner account and recoverable sessions.
+AnthraciteMD runs where the user's files live and is accessed from other browsers over a private network. Network placement alone is not sufficient protection for private notes, credentials, and eventual agent authority, so the first hosted slice needs a built-in single-owner account and recoverable sessions.
 
 ## Outcome
 
-A self-hosting owner will be able to establish one local GraphiteMD account, sign in securely from an authorized browser, reconnect without restarting service-owned work, change the password, and recover access from the host machine without email or an external identity provider.
+A self-hosting owner will be able to establish one local AnthraciteMD account, sign in securely from an authorized browser, reconnect without restarting service-owned work, change the password, and recover access from the host machine without email or an external identity provider.
 
 ## Current Scope
 
@@ -36,7 +36,7 @@ A self-hosting owner will be able to establish one local GraphiteMD account, sig
 - Public signup, multiple users, teams, roles, invitations, and tenant isolation.
 - Email recovery, passkeys, OAuth identity providers, and trusted reverse-proxy identity.
 - Public-internet hosting posture and untrusted-device administration.
-- Multiple simultaneously active GraphiteMD workspaces.
+- Multiple simultaneously active AnthraciteMD workspaces.
 
 ## Candidate Stories
 
@@ -90,13 +90,13 @@ The system SHALL authenticate valid owner credentials into a regenerated secure 
 ###### Scenario R2-S1: Valid Login Establishes A Session
 
 - WHEN the owner submits valid credentials from an allowed application origin
-- THEN GraphiteMD regenerates the session identifier
+- THEN AnthraciteMD regenerates the session identifier
 - AND returns the authenticated workspace shell without exposing password or session material to the client bundle.
 
 ###### Scenario R2-S2: Invalid Login Fails Generically
 
 - WHEN a browser submits an unknown account or incorrect password
-- THEN GraphiteMD returns the same generic authentication failure
+- THEN AnthraciteMD returns the same generic authentication failure
 - AND does not establish an authenticated session.
 
 ###### Scenario R2-S3: Logout Invalidates The Current Session
